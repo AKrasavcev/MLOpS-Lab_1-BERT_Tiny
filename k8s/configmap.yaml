@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mlops-config
+  namespace: mlops
+data:
+  MODEL_PATH: "/app/models/model.pkl"
+  MLFLOW_TRACKING_URI: "http://mlflow.mlops.svc:5000"
