@@ -67,7 +67,7 @@ def main() -> None:
         (ROOT / "params.yaml").write_text(yaml.safe_dump(cfg, sort_keys=False))
 
         sh("dvc", "repro", "--force")                       # 4. re-run the DAG -> train.py logs a new run
-        new_id = (ROOT / "models/run_id.txt").read_text().strip()
+        new_id = (ROOT / "model/run_id.txt").read_text().strip()
         new = mlflow.get_run(new_id)
         mlflow.MlflowClient().set_tag(new_id, "reproduces", args.run_id)
 
