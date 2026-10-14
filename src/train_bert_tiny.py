@@ -10,6 +10,8 @@ from pathlib import Path
 
 import mlflow
 import numpy as np
+import subprocess
+import pandas as pd
 import torch
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, f1_score, precision_recall_fscore_support
@@ -76,6 +78,23 @@ def parse_args() -> TrainingConfig:
     )
 
 
+def git_commit() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "--short=8", "HEAD"], cwd=ROOT, text=True
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
+def dvc_md5(dvc_file: Path) -> str:
+    """md5 of the raw dataset as recorded by `dvc add` - the join key to dvc.lock."""
+    try:
+        return yaml.safe_load(dvc_file.read_text())["outs"][0]["md5"]
+    except Exception:
+        return "untracked"
+
+
 def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -110,6 +129,9 @@ def main() -> None:
     tracking_uri = config.tracking_uri or "sqlite:///mlflow.db"
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(config.experiment_name)
+
+    train = pd.read_csv(config.train_data_path)
+    test = pd.read_csv(config.test_data_path)
 
     train_dataset = load_dataset("csv", data_files=config.train_data_path, split="train")
     eval_dataset = load_dataset("csv", data_files=config.test_data_path, split="train")
@@ -186,6 +208,17 @@ def main() -> None:
                 "num_labels": len(label_values),
                 "dataset_path": config.train_data_path,
             }
+        )
+        mlflow.set_tags({                                           # identities
+            "git_commit": git_commit(),
+            "dvc_raw_md5": dvc_md5(ROOT_DIR / "data/raw_dataset.csv.dvc"),
+            "model_name": config.model_name,
+        })
+        mlflow.log_input(                                           # data provenance (name + digest)
+            mlflow.data.from_pandas(
+                train, source="data/train.csv", name=f"{config.dataset_name}-{config.dataset_config}-train"
+            ),
+            context="training",
         )
 
         train_result = trainer.train()
