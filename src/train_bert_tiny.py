@@ -189,12 +189,12 @@ def main() -> None:
         )
 
         train_result = trainer.train()
-        eval_result = trainer.evaluate()
+        # eval_result = trainer.evaluate()
 
         train_metrics = {key: float(value) for key, value in train_result.metrics.items() if isinstance(value, (int, float, np.floating))}
-        eval_metrics = {key: float(value) for key, value in eval_result.items() if isinstance(value, (int, float, np.floating))}
+        # eval_metrics = {key: float(value) for key, value in eval_result.items() if isinstance(value, (int, float, np.floating))}
         mlflow.log_metrics(train_metrics)
-        mlflow.log_metrics(eval_metrics)
+        # mlflow.log_metrics(eval_metrics)
 
         local_model_dir = model_dir / "model"
         local_model_dir.mkdir(parents=True, exist_ok=True)
@@ -214,7 +214,8 @@ def main() -> None:
         report = {
             "accuracy": float(accuracy_score(predictions.label_ids, predicted_labels)),
             "f1": float(f1_score(predictions.label_ids, predicted_labels, zero_division=0)),
-            "metrics": {"train": train_metrics, "eval": eval_metrics},
+            # "metrics": {"train": train_metrics, "eval": eval_metrics},
+            "metrics": {"train": train_metrics},
         }
         report_path = model_dir / "evaluation.json"
         report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")

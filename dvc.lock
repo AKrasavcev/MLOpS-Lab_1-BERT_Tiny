@@ -18,7 +18,7 @@ stages:
           seed: 42
         train:
           max_length: 128
-          epochs: 2
+          epochs: 1
           learning_rate: 2e-05
           train_batch_size: 8
           eval_batch_size: 8
@@ -34,7 +34,7 @@ stages:
       md5: b2d795aebb7394b864f679bb10e5481a
       size: 3208273
   train:
-    cmd: python -m src.train_bert_tiny
+    cmd: python src/train_bert_tiny.py
     deps:
     - path: data/test.csv
       hash: md5
@@ -46,20 +46,33 @@ stages:
       size: 3208273
     - path: src/train_bert_tiny.py
       hash: md5
-      md5: 87391ce25b6e4fd8f09318145ece3e8e
-      size: 8406
+      md5: 8c879b7f514ee6b5e0bc7be2062b5e43
+      size: 8463
+    params:
+      params.yaml:
+        prepare:
+          test_size: 0.2
+          seed: 42
+        train:
+          max_length: 128
+          epochs: 1
+          learning_rate: 2e-05
+          train_batch_size: 8
+          eval_batch_size: 8
+          weight_decay: 0.01
+          seed: 42
     outs:
     - path: model/model
       hash: md5
-      md5: e38b1ee98ef12075eb8cc0effae17338.dir
+      md5: 5b6d796f8e473a5f9055b86f361d41a4.dir
       size: 18500311
       nfiles: 7
     - path: model/run_id.txt
       hash: md5
-      md5: 684600463fa1809c323dc620d013a667
+      md5: e64a606ac352b23ae6a05610e111d2a9
       size: 32
   evaluate:
-    cmd: python -m src.evaluate_model
+    cmd: python src/evaluate_model.py
     deps:
     - path: data/test.csv
       hash: md5
@@ -67,19 +80,19 @@ stages:
       size: 798122
     - path: model/model
       hash: md5
-      md5: e38b1ee98ef12075eb8cc0effae17338.dir
+      md5: 5b6d796f8e473a5f9055b86f361d41a4.dir
       size: 18500311
       nfiles: 7
     - path: model/run_id.txt
       hash: md5
-      md5: 684600463fa1809c323dc620d013a667
+      md5: e64a606ac352b23ae6a05610e111d2a9
       size: 32
     - path: src/evaluate_model.py
       hash: md5
-      md5: fffcf5d5f40ae6a761479837d4fccc8b
-      size: 3405
+      md5: 3668341f9f5fabe95e1b580625b82091
+      size: 3899
     outs:
     - path: model/metrics.json
       hash: md5
-      md5: 148c1d16c537245cecd65ac2b53b120b
+      md5: 8b8d2c30d2eb8b5f75de76fc690f812f
       size: 249

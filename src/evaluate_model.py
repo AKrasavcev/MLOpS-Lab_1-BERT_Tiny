@@ -72,20 +72,28 @@ def evaluate_model() -> dict[str, float]:
         mlflow.set_tracking_uri(tracking_uri)
 
     run_id = Path(DEFAULT_RUN_ID_PATH).read_text(encoding="utf-8").strip() if Path(DEFAULT_RUN_ID_PATH).exists() else None
-    if run_id:
-        with mlflow.start_run(run_id=run_id):
-            mlflow.log_metrics(metrics)
-            try:
-                mlflow.log_artifact(str(metrics_output), artifact_path="evaluation")
-            except mlflow.exceptions.MlflowException:
-                pass
-    elif tracking_uri:
-        with mlflow.start_run(run_name="model-evaluation"):
-            mlflow.log_metrics(metrics)
-            try:
-                mlflow.log_artifact(str(metrics_output), artifact_path="evaluation")
-            except mlflow.exceptions.MlflowException:
-                pass
+    # if run_id:
+    #     with mlflow.start_run(run_id=run_id):
+    #         mlflow.log_metrics(metrics)
+    #         try:
+    #             mlflow.log_artifact(str(metrics_output), artifact_path="evaluation")
+    #         except mlflow.exceptions.MlflowException:
+    #             pass
+    # elif tracking_uri:
+    #     with mlflow.start_run(run_name="model-evaluation"):
+    #         mlflow.log_metrics(metrics)
+    #         try:
+    #             mlflow.log_artifact(str(metrics_output), artifact_path="evaluation")
+    #         except mlflow.exceptions.MlflowException:
+    #             pass
+
+    if run_id:                                   # lineage: evaluation lands on the training run
+        try:
+            client = mlflow.MlflowClient()
+            for key, value in metrics.items():
+                client.log_metric(run_id, f"eval/{key}", value)
+        except Exception as exc:                               # best-effort: run may live on an unreachable server
+            print(f"warning: eval metrics not attached to the training run ({exc})")
 
     return metrics
 
