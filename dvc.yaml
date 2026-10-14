@@ -1,0 +1,28 @@
+stages:
+  prepare:
+    cmd: python -m src.prepare_dataset
+    deps:
+    - src/prepare_dataset.py
+    outs:
+    - data/train.csv
+    - data/test.csv
+
+  train:
+    cmd: python -m src.train_bert_tiny
+    deps:
+    - data/train.csv
+    - data/test.csv
+    - src/train_bert_tiny.py
+    outs:
+    - model/model
+    - model/run_id.txt
+
+  evaluate:
+    cmd: python -m src.evaluate_model
+    deps:
+    - data/test.csv
+    - model/model
+    - model/run_id.txt
+    - src/evaluate_model.py
+    outs:
+    - model/metrics.json
