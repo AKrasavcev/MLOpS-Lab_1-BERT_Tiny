@@ -11,11 +11,11 @@ stages:
     - data/test.csv
 
   train:
-    cmd: python src/train_bert_tiny.py
+    cmd: python src/train.py
     deps:
     - data/train.csv
     - data/test.csv
-    - src/train_bert_tiny.py
+    - src/train.py
     params:
     - params.yaml:
     outs:

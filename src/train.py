@@ -54,8 +54,8 @@ class TrainingConfig:
     tracking_uri: str | None = None
 
 
-def parse_args() -> TrainingConfig:
-    params = yaml.safe_load(Path(ROOT_DIR / "params.yaml").read_text())["train"]
+
+def parse_args(params: dict[str, object]) -> TrainingConfig:
 
     parser = argparse.ArgumentParser(description="Fine-tune a BERT Tiny classifier on CSV datasets and log to MLflow.")
     parser.add_argument("--max-length", type=int, default=params["max_length"])
@@ -122,7 +122,8 @@ def build_compute_metrics():
 
 
 def main() -> None:
-    config = parse_args()
+    params = yaml.safe_load(Path(ROOT_DIR / "params.yaml").read_text())["train"]
+    config = parse_args(params)
     set_seed(config.seed)
 
     os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
@@ -200,13 +201,12 @@ def main() -> None:
     model_dir.mkdir(parents=True, exist_ok=True)
 
     with mlflow.start_run(run_name=run_name):
-        mlflow.log_params(asdict(config))
+        mlflow.log_params(params)
         mlflow.log_params(
             {
                 "train_size": len(tokenized_train),
                 "eval_size": len(tokenized_eval),
                 "num_labels": len(label_values),
-                "dataset_path": config.train_data_path,
             }
         )
         mlflow.set_tags({                                           # identities

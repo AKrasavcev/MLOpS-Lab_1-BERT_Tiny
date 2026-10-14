@@ -12,18 +12,34 @@ This repository contains a CPU-friendly fine-tuning script for `prajjwal1/bert-t
 ## Install
 
 ```bash
-pip install -r requirements.txt
+install uv
+uv venv .venv && source .venv/bin/activate
+uv pip install -r requirements.txt
 ```
 
 ## Run locally
 
+Run mlflow local server
 ```bash
+mlflow server \
+--backend-store-uri sqlite:///mlflow.db \
+--artifacts-destination ./mlartifacts \
+--host 127.0.0.1 --port 5000
+```
+
+Run manualy
+```bash
+python src/create_raw_dataset.py    # mandatory for first time
+
 export MLFLOW_TRACKING_URI=http://localhost:5000
-python -m src.train_bert_tiny \
-  --experiment-name bert-tiny-sst2 \
-  --run-name local-test \
-  --train-split "train[:1000]" \
-  --eval-split "validation[:200]"
+python src/prepare_dataset.py
+python src/train.py
+python src/evaluate_model.py
+```
+
+or using 
+```bash
+dvc repro
 ```
 
 ## Run against the Kubernetes MLflow service
