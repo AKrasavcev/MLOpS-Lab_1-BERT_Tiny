@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import random
+import yaml
 from pathlib import Path
 from typing import Iterable
 
@@ -10,8 +11,6 @@ DATA_DIR = ROOT_DIR / "data"
 RAW_DATA_PATH = DATA_DIR / "raw_dataset.csv"
 TRAIN_DATA_PATH = DATA_DIR / "train.csv"
 TEST_DATA_PATH = DATA_DIR / "test.csv"
-TEST_SIZE = 0.2
-SEED = 42
 
 
 def split_rows(rows: list[dict[str, object]], test_size: float = 0.2, seed: int = 42) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
@@ -38,20 +37,23 @@ def write_csv_rows(path: Path | str, rows: Iterable[dict[str, object]]) -> Path:
     return output_path
 
 
-def prepare_dataset() -> tuple[Path, Path]:
+
+def prepare_dataset(params: dict[str, float]) -> tuple[Path, Path]:
     raw_file = Path(RAW_DATA_PATH)
     with raw_file.open("r", newline="", encoding="utf-8") as csv_file:
         reader = csv.DictReader(csv_file)
         rows = [{"text": row["text"], "label": int(row["label"])} for row in reader]
 
-    train_rows, test_rows = split_rows(rows, test_size=TEST_SIZE, seed=SEED)
+    train_rows, test_rows = split_rows(rows, test_size=params["test_size"], seed=int(params["seed"]))
     train_output = write_csv_rows(TRAIN_DATA_PATH, train_rows)
     test_output = write_csv_rows(TEST_DATA_PATH, test_rows)
     return train_output, test_output
 
 
 def main() -> None:
-    train_path, test_path = prepare_dataset()
+    params = yaml.safe_load(Path(ROOT_DIR / "params.yaml").read_text())["prepare_dataset"]
+
+    train_path, test_path = prepare_dataset(params)
     print(f"Prepared train set: {train_path}")
     print(f"Prepared test set: {test_path}")
 
