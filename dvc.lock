@@ -1,12 +1,29 @@
 schema: '2.0'
 stages:
   prepare:
-    cmd: python -m src.prepare_dataset
+    cmd: python src/prepare_dataset.py
     deps:
+    - path: data/raw_dataset.csv
+      hash: md5
+      md5: fc5fded03bf8db497a41e33c7f28645f
+      size: 4006383
     - path: src/prepare_dataset.py
       hash: md5
-      md5: 37e9ae6ada6f524bb135ad668ae0ef35
-      size: 1991
+      md5: b723409fce5a17ef240308d2743cd90a
+      size: 2117
+    params:
+      params.yaml:
+        prepare:
+          test_size: 0.2
+          seed: 42
+        train:
+          max_length: 128
+          epochs: 2
+          learning_rate: 2e-05
+          train_batch_size: 8
+          eval_batch_size: 8
+          weight_decay: 0.01
+          seed: 42
     outs:
     - path: data/test.csv
       hash: md5
