@@ -1,0 +1,68 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python -m src.prepare_dataset
+    deps:
+    - path: src/prepare_dataset.py
+      hash: md5
+      md5: 37e9ae6ada6f524bb135ad668ae0ef35
+      size: 1991
+    outs:
+    - path: data/test.csv
+      hash: md5
+      md5: d44acb0b6be7d68180795b168b24e1dc
+      size: 798122
+    - path: data/train.csv
+      hash: md5
+      md5: b2d795aebb7394b864f679bb10e5481a
+      size: 3208273
+  train:
+    cmd: python -m src.train_bert_tiny
+    deps:
+    - path: data/test.csv
+      hash: md5
+      md5: d44acb0b6be7d68180795b168b24e1dc
+      size: 798122
+    - path: data/train.csv
+      hash: md5
+      md5: b2d795aebb7394b864f679bb10e5481a
+      size: 3208273
+    - path: src/train_bert_tiny.py
+      hash: md5
+      md5: 87391ce25b6e4fd8f09318145ece3e8e
+      size: 8406
+    outs:
+    - path: model/model
+      hash: md5
+      md5: e38b1ee98ef12075eb8cc0effae17338.dir
+      size: 18500311
+      nfiles: 7
+    - path: model/run_id.txt
+      hash: md5
+      md5: 684600463fa1809c323dc620d013a667
+      size: 32
+  evaluate:
+    cmd: python -m src.evaluate_model
+    deps:
+    - path: data/test.csv
+      hash: md5
+      md5: d44acb0b6be7d68180795b168b24e1dc
+      size: 798122
+    - path: model/model
+      hash: md5
+      md5: e38b1ee98ef12075eb8cc0effae17338.dir
+      size: 18500311
+      nfiles: 7
+    - path: model/run_id.txt
+      hash: md5
+      md5: 684600463fa1809c323dc620d013a667
+      size: 32
+    - path: src/evaluate_model.py
+      hash: md5
+      md5: fffcf5d5f40ae6a761479837d4fccc8b
+      size: 3405
+    outs:
+    - path: model/metrics.json
+      hash: md5
+      md5: 148c1d16c537245cecd65ac2b53b120b
+      size: 249

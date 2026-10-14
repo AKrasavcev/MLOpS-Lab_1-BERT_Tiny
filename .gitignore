@@ -1,7 +1,13 @@
 */__pycache__/*
 .venv
+
+
 mlflow.db
 mlruns
 mlartifacts
-model/
+
+
+model/*
+!model/metrics.json
+!model/run_id.txt
 *.csv
