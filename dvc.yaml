@@ -1,28 +1,35 @@
 stages:
   prepare:
-    cmd: python -m src.prepare_dataset
+    cmd: python src/prepare_dataset.py
     deps:
     - src/prepare_dataset.py
+    - data/raw_dataset.csv
+    params:
+    - params.yaml:
     outs:
     - data/train.csv
     - data/test.csv
 
   train:
-    cmd: python -m src.train_bert_tiny
+    cmd: python src/train_bert_tiny.py
     deps:
     - data/train.csv
     - data/test.csv
     - src/train_bert_tiny.py
+    params:
+    - params.yaml:
     outs:
     - model/model
-    - model/run_id.txt
+    - model/run_id.txt:
+        cache: false
 
   evaluate:
-    cmd: python -m src.evaluate_model
+    cmd: python src/evaluate_model.py
     deps:
     - data/test.csv
     - model/model
     - model/run_id.txt
     - src/evaluate_model.py
     outs:
-    - model/metrics.json
+    - model/metrics.json:
+        cache: false

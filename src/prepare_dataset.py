@@ -51,7 +51,7 @@ def prepare_dataset(params: dict[str, float]) -> tuple[Path, Path]:
 
 
 def main() -> None:
-    params = yaml.safe_load(Path(ROOT_DIR / "params.yaml").read_text())["prepare_dataset"]
+    params = yaml.safe_load(Path(ROOT_DIR / "params.yaml").read_text())["prepare"]
 
     train_path, test_path = prepare_dataset(params)
     print(f"Prepared train set: {train_path}")
