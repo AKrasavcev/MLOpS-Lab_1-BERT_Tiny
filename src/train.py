@@ -51,7 +51,7 @@ class TrainingConfig:
     model_dir: str = str(DEFAULT_MODEL_DIR)
     experiment_name: str = DEFAULT_EXPERIMENT_NAME
     run_name: str | None = None
-    tracking_uri: str | None = None
+    tracking_uri: str | None = os.getenv("MLFLOW_TRACKING_URI")
 
 
 
@@ -127,8 +127,8 @@ def main() -> None:
     set_seed(config.seed)
 
     os.environ.setdefault("MLFLOW_ALLOW_FILE_STORE", "true")
-    tracking_uri = config.tracking_uri or "sqlite:///mlflow.db"
-    mlflow.set_tracking_uri(tracking_uri)
+    if config.tracking_uri:
+        mlflow.set_tracking_uri(config.tracking_uri)
     mlflow.set_experiment(config.experiment_name)
 
     train = pd.read_csv(config.train_data_path)
