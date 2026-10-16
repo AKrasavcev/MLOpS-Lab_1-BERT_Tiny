@@ -1,10 +1,20 @@
 train:
+  # Dataset batch size and maximum sequence length
   max_length: 128
+
+  # Training Duration and per device Batch Size
   epochs: 1
-  learning_rate: 2e-5
   train_batch_size: 8
   eval_batch_size: 8
+
+  # Learning Rate & Scheduler
+  learning_rate: 2e-5
+  lr_scheduler_type: linear   # linear, cosine, constant, cosine_with_warnmup
+
+  # Optimizer
+  optimizer: adamw_torch      # adamw_torch, adamw_torch_fused, adamw_hf, sgd, adafactor, 
   weight_decay: 0.01
+
   seed: 42
   
 prepare:

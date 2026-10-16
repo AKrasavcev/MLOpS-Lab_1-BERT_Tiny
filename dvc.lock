@@ -20,9 +20,11 @@ stages:
         train:
           max_length: 128
           epochs: 1
-          learning_rate: 2e-05
           train_batch_size: 8
           eval_batch_size: 8
+          learning_rate: 2e-05
+          lr_scheduler_type: linear
+          optimizer: adamw_torch
           weight_decay: 0.01
           seed: 42
     outs:
@@ -47,8 +49,8 @@ stages:
       size: 472461
     - path: src/train.py
       hash: md5
-      md5: 15df2878d4f9de31107e51ae86c474e4
-      size: 9591
+      md5: 64883b0243129ed3aae63140a3f74fe4
+      size: 10271
     params:
       params.yaml:
         prepare:
@@ -58,20 +60,22 @@ stages:
         train:
           max_length: 128
           epochs: 1
-          learning_rate: 2e-05
           train_batch_size: 8
           eval_batch_size: 8
+          learning_rate: 2e-05
+          lr_scheduler_type: linear
+          optimizer: adamw_torch
           weight_decay: 0.01
           seed: 42
     outs:
     - path: model/model
       hash: md5
-      md5: d558b5f074680affe748ea162569c287.dir
+      md5: 11e5bda69abb48a1e8067c43ac0171e5.dir
       size: 18500311
       nfiles: 7
     - path: model/run_id.txt
       hash: md5
-      md5: df1e5281089b9a35e293cf79568c9c58
+      md5: 482299c6b0286d248c5e2b5e9f5c2c79
       size: 32
   evaluate:
     cmd: python src/evaluate_model.py
@@ -82,12 +86,12 @@ stages:
       size: 114673
     - path: model/model
       hash: md5
-      md5: d558b5f074680affe748ea162569c287.dir
+      md5: 11e5bda69abb48a1e8067c43ac0171e5.dir
       size: 18500311
       nfiles: 7
     - path: model/run_id.txt
       hash: md5
-      md5: df1e5281089b9a35e293cf79568c9c58
+      md5: 482299c6b0286d248c5e2b5e9f5c2c79
       size: 32
     - path: src/evaluate_model.py
       hash: md5
@@ -96,5 +100,5 @@ stages:
     outs:
     - path: model/metrics.json
       hash: md5
-      md5: 9787dba144c1c04484634dfdf36dfdef
-      size: 237
+      md5: a2b4a80f25fb66cbbf2bc6890a283479
+      size: 236

@@ -30,6 +30,7 @@ DEFAULT_MODEL_NAME = "prajjwal1/bert-tiny"
 DEFAULT_DATASET_NAME = "glue"
 DEFAULT_DATASET_CONFIG = "sst2"
 DEFAULT_EXPERIMENT_NAME = "bert-tiny-sst2"
+DEFAULT_MODEL_REGISTRY_NAME = DEFAULT_EXPERIMENT_NAME
 DEFAULT_TRAIN_DATA_PATH = ROOT_DIR / "data" / "train.csv"
 DEFAULT_TEST_DATA_PATH = ROOT_DIR / "data" / "test.csv"
 
@@ -43,13 +44,16 @@ class TrainingConfig:
     test_data_path: str = str(DEFAULT_TEST_DATA_PATH)
     max_length: int = 128
     num_train_epochs: float = 1.0
-    learning_rate: float = 2e-5
     train_batch_size: int = 8
     eval_batch_size: int = 8
+    learning_rate: float = 2e-5
+    lr_scheduler_type: str = "linear"
+    optimizer: str = "adamw_torch"
     weight_decay: float = 0.01
     seed: int = 42
     model_dir: str = str(DEFAULT_MODEL_DIR)
     experiment_name: str = DEFAULT_EXPERIMENT_NAME
+    registered_model_name: str = DEFAULT_MODEL_REGISTRY_NAME
     run_name: str | None = None
     tracking_uri: str | None = os.getenv("MLFLOW_TRACKING_URI")
 
@@ -60,9 +64,11 @@ def parse_args(params: dict[str, object]) -> TrainingConfig:
     parser = argparse.ArgumentParser(description="Fine-tune a BERT Tiny classifier on CSV datasets and log to MLflow.")
     parser.add_argument("--max-length", type=int, default=params["max_length"])
     parser.add_argument("--epochs", type=int, default=params["epochs"])
-    parser.add_argument("--learning-rate", type=float, default=params["learning_rate"])
     parser.add_argument("--train-batch-size", type=int, default=params["train_batch_size"])
     parser.add_argument("--eval-batch-size", type=int, default=params["eval_batch_size"])
+    parser.add_argument("--learning-rate", type=float, default=params["learning_rate"])
+    parser.add_argument("--lr-scheduler-type", type=str, default=params["lr_scheduler_type"])
+    parser.add_argument("--optimizer", type=str, default=params["optimizer"])
     parser.add_argument("--weight-decay", type=float, default=params["weight_decay"])
     parser.add_argument("--seed", type=int, default=params["seed"])
     args = parser.parse_args()
@@ -70,9 +76,11 @@ def parse_args(params: dict[str, object]) -> TrainingConfig:
     return TrainingConfig(
         max_length=args.max_length,
         num_train_epochs=args.epochs,
-        learning_rate=args.learning_rate,
         train_batch_size=args.train_batch_size,
         eval_batch_size=args.eval_batch_size,
+        learning_rate=args.learning_rate,
+        lr_scheduler_type=args.lr_scheduler_type,
+        optimizer=args.optimizer,
         weight_decay=args.weight_decay,
         seed=args.seed,
     )
@@ -130,6 +138,7 @@ def main() -> None:
     if config.tracking_uri:
         mlflow.set_tracking_uri(config.tracking_uri)
     mlflow.set_experiment(config.experiment_name)
+    mlflow.transformers.autolog(log_models=False)
 
     train = pd.read_csv(config.train_data_path)
     test = pd.read_csv(config.test_data_path)
@@ -171,6 +180,8 @@ def main() -> None:
     training_arguments = TrainingArguments(
         output_dir=str(Path(config.model_dir) / "checkpoints"),
         learning_rate=config.learning_rate,
+        lr_scheduler_type=config.lr_scheduler_type,
+        optim=config.optimizer,
         num_train_epochs=config.num_train_epochs,
         per_device_train_batch_size=config.train_batch_size,
         per_device_eval_batch_size=config.eval_batch_size,
@@ -234,10 +245,12 @@ def main() -> None:
         trainer.save_model(str(local_model_dir))
         tokenizer.save_pretrained(str(local_model_dir))
 
-        try:
-            mlflow.log_artifacts(str(local_model_dir), artifact_path="model")
-        except mlflow.exceptions.MlflowException:
-            pass
+        mlflow.transformers.log_model(
+            transformers_model={"model": trainer.model, "tokenizer": tokenizer},
+            name="model",
+            task="text-classification",
+            registered_model_name=config.registered_model_name,
+        )
 
         run_id = mlflow.active_run().info.run_id
         (model_dir / "run_id.txt").write_text(run_id, encoding="utf-8")
