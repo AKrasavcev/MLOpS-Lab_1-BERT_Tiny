@@ -141,7 +141,6 @@ def main() -> None:
     mlflow.transformers.autolog(log_models=False)
 
     train = pd.read_csv(config.train_data_path)
-    test = pd.read_csv(config.test_data_path)
 
     train_dataset = load_dataset("csv", data_files=config.train_data_path, split="train")
     eval_dataset = load_dataset("csv", data_files=config.test_data_path, split="train")
@@ -207,7 +206,7 @@ def main() -> None:
         compute_metrics=build_compute_metrics(),
     )
 
-    run_name = config.run_name or f"{config.model_name}-csv"
+    run_name = config.run_name or f"bt-{config.lr_scheduler_type}-{config.optimizer}"
     model_dir = Path(config.model_dir)
     model_dir.mkdir(parents=True, exist_ok=True)
 
@@ -233,12 +232,9 @@ def main() -> None:
         )
 
         train_result = trainer.train()
-        # eval_result = trainer.evaluate()
 
         train_metrics = {key: float(value) for key, value in train_result.metrics.items() if isinstance(value, (int, float, np.floating))}
-        # eval_metrics = {key: float(value) for key, value in eval_result.items() if isinstance(value, (int, float, np.floating))}
         mlflow.log_metrics(train_metrics)
-        # mlflow.log_metrics(eval_metrics)
 
         local_model_dir = model_dir / "model"
         local_model_dir.mkdir(parents=True, exist_ok=True)
@@ -260,7 +256,6 @@ def main() -> None:
         report = {
             "accuracy": float(accuracy_score(predictions.label_ids, predicted_labels)),
             "f1": float(f1_score(predictions.label_ids, predicted_labels, zero_division=0)),
-            # "metrics": {"train": train_metrics, "eval": eval_metrics},
             "metrics": {"train": train_metrics},
         }
         report_path = model_dir / "evaluation.json"
