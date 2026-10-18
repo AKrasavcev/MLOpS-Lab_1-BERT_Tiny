@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mlflow-pvc
-  namespace: mlops
+  namespace: mlops-l1
 spec:
   accessModes:
     - ReadWriteOnce

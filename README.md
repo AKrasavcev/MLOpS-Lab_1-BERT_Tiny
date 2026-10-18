@@ -75,12 +75,34 @@ Image accessible at [https://github.com/users/AKrasavcev/packages/container/pack
 
 ## Run against the Kubernetes MLflow service
 
-If the MLflow server is exposed through port-forwarding:
+```bash
+minikube start --cpus=4 --memory=8192
+kubectl apply -f k8s/namespace.yaml
+```
+
+Option A (recommended): port-forward from your PC.
 
 ```bash
-kubectl -n mlops port-forward svc/mlflow 5000:5000
+kubectl -n mlops-l1 port-forward svc/mlflow 5000:5000
 export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
-python -m src.train_bert_tiny
+python src/train.py
+python src/evaluate_model.py
+```
+
+Option B: NodePort (for Minikube).
+
+```bash
+minikube ip
+export MLFLOW_TRACKING_URI=http://<MINIKUBE_IP>:30500
+python src/train.py
+python src/evaluate_model.py
+```
+
+You can also run the full pipeline with the same tracking URI:
+
+```bash
+export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
+dvc repro
 ```
 
 ## Outputs

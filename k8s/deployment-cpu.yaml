@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mlops-bert-tiny
-  namespace: mlops
+  name: mlops-l1-bert-tiny
+  namespace: mlops-l1
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: mlops-bert-tiny
+      app: mlops-l1-bert-tiny
   template:
     metadata:
       labels:
-        app: mlops-bert-tiny
+        app: mlops-l1-bert-tiny
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/metrics"
@@ -20,8 +20,7 @@ spec:
       containers:
         - name: api
           # Replace with your Artifact Registry or local image
-          image: mlops-bert-tiny-cpu:v1.2.0
-          #image: europe-west1-docker.pkg.dev/mlops-fraud-detection-509615/mlops/mlops-cpu:v1.2.0
+          image: ghcr.io/akrasavcev/bert-tiny:sha-abf54914ef94
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
@@ -32,7 +31,7 @@ spec:
             - containerPort: 8080
           envFrom:
             - configMapRef:
-                name: mlops-config
+                name: mlops-l1-config
           resources:
             requests:
               cpu: "250m"
