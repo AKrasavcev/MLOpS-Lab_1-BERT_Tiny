@@ -42,6 +42,21 @@ or using
 dvc repro
 ```
 
+## Create Docker image
+
+```bash
+docker build -f docker/Dockerfile.cpu -t bert-tiny:latest
+
+docker run --rm -d --name bert-tiny-api -p 8000:8000 bert-tiny
+```
+
+Trivy security scan
+```bash
+trivy image --scanners vuln --severity HIGH,CRITICAL -f json -o docs/trivy-cpu.json bert-tiny:latest
+
+trivy image -f spdx-json -o docs/sbom-cpu.json bert-tiny:latest
+```
+
 ## Run against the Kubernetes MLflow service
 
 If the MLflow server is exposed through port-forwarding:
