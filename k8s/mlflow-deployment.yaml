@@ -33,18 +33,18 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
+        #mkdir -p /mlflow/artifacts && \
         command:
         - sh
         - -c
         - |
-          mkdir -p /mlflow/artifacts && \
           pip install --no-cache-dir psycopg2-binary==2.9.9 && \
           mlflow server \
             --host=0.0.0.0 \
             --port=5000 \
             --workers=1 \
             --backend-store-uri=postgresql://mlflow:mlflow@postgres.mlops-l1.svc.cluster.local:5432/mlflow \
-            --default-artifact-root=file:///mlflow/artifacts
+            --artifacts-destination=/mlartifacts
         resources:
           requests:
             cpu: "250m"
@@ -54,7 +54,7 @@ spec:
             memory: "4Gi"
         volumeMounts:
         - name: mlflow-storage
-          mountPath: /mlflow/artifacts
+          mountPath: /mlartifacts
         readinessProbe:
           httpGet:
             path: /health
