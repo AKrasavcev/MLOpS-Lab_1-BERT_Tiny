@@ -45,7 +45,7 @@ dvc repro
 ## Create Docker image
 
 ```bash
-docker build -f docker/Dockerfile.cpu -t bert-tiny:latest
+docker build -f docker/Dockerfile.cpu -t bert-tiny:latest .
 
 docker run --rm -d --name bert-tiny-api -p 8000:8000 bert-tiny
 ```
@@ -56,6 +56,22 @@ trivy image --scanners vuln --severity HIGH,CRITICAL -f json -o docs/trivy-cpu.j
 
 trivy image -f spdx-json -o docs/sbom-cpu.json bert-tiny:latest
 ```
+
+## Publish to GHCR
+
+```bash
+gh auth login --hostname github.com --git-protocol ssh --web \
+    --scopes write:packages,read:packages
+OWNER=$(gh api user --jq '.login | ascii_downcase')
+gh auth token | docker login ghcr.io -u "$OWNER" --password-stdin
+export IMAGE_NAME=bert-tiny
+export COMMIT_SHA=$(git rev-parse --short=12 HEAD)
+export IMAGE=ghcr.io/$OWNER/$IMAGE_NAME:sha-$COMMIT_SHA
+docker build -f docker/Dockerfile.cpu -t $IMAGE .           # or docker tag bert-tiny:latest $IMAGE
+docker push $IMAGE
+```
+
+Image accessible at [https://github.com/users/AKrasavcev/packages/container/package/bert-tiny](https://github.com/users/AKrasavcev/packages/container/package/bert-tiny)
 
 ## Run against the Kubernetes MLflow service
 
