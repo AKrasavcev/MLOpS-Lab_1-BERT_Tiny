@@ -9,7 +9,7 @@ This repository contains a CPU-friendly fine-tuning script for `prajjwal1/bert-t
 - Logs parameters, metrics, and the trained model to MLflow.
 - Uses `MLFLOW_TRACKING_URI` so it can log to a remote MLflow server, including the one deployed in Kubernetes.
 
-## Install
+## Install dependencies
 
 ```bash
 install uv
@@ -37,18 +37,37 @@ python src/train.py
 python src/evaluate_model.py
 ```
 
-or using 
+or using DVC
 ```bash
 dvc repro
 ```
 
+Run parameters can be changed in `params.yaml`
+
+To see metrics and parameters chenge:
+```bash
+dvc metrics diff HEAD~1
+dvc params diff HEAD~1
+```
+
+To reproduce experiment:
+```bash
+python reproduce.py <experiment-id>
+```
+
 ## Create Docker image
+
+Install **Docker**: [https://docs.docker.com/engine/install/ubuntu/](https://docs.docker.com/engine/install/ubuntu/)
+
+Build image
 
 ```bash
 docker build -f docker/Dockerfile.cpu -t bert-tiny:latest .
 
-docker run --rm -d --name bert-tiny-api -p 8000:8000 bert-tiny
+docker run --rm -d --name bert-tiny-api -p 8000:8000 bert-tiny:latest
 ```
+
+Install **Trivy**: [https://trivy.dev/docs/latest/getting-started/installation/](https://trivy.dev/docs/latest/getting-started/installation/)
 
 Trivy security scan
 ```bash
@@ -59,9 +78,12 @@ trivy image -f spdx-json -o docs/sbom-cpu.json bert-tiny:latest
 
 ## Publish to GHCR
 
+Install **gh**: [https://cli.github.com](https://cli.github.com)
+
 ```bash
 gh auth login --hostname github.com --git-protocol ssh --web \
     --scopes write:packages,read:packages
+    
 OWNER=$(gh api user --jq '.login | ascii_downcase')
 gh auth token | docker login ghcr.io -u "$OWNER" --password-stdin
 export IMAGE_NAME=bert-tiny
@@ -75,25 +97,19 @@ Image accessible at [https://github.com/users/AKrasavcev/packages/container/pack
 
 ## Run against the Kubernetes MLflow service
 
+Install **Minikube**: [https://minikube.sigs.k8s.io/docs/start/](https://minikube.sigs.k8s.io/docs/start/?arch=%2Fwindows%2Fx86-64%2Fstable%2F.exe+download)
+
+Start minikube cluster
 ```bash
-minikube start --cpus=4 --memory=8192
-kubectl apply -f k8s/namespace.yaml
+minikube start --cpus=6 --memory=8192
+bash scripts/k8_deploy.sh
 ```
 
-Option A (recommended): port-forward from your PC.
+Access MLflow server through port-forwarding from your PC:
 
 ```bash
 kubectl -n mlops-l1 port-forward svc/mlflow 5000:5000
 export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
-python src/train.py
-python src/evaluate_model.py
-```
-
-Option B: NodePort (for Minikube).
-
-```bash
-minikube ip
-export MLFLOW_TRACKING_URI=http://<MINIKUBE_IP>:30500
 python src/train.py
 python src/evaluate_model.py
 ```
@@ -103,6 +119,11 @@ You can also run the full pipeline with the same tracking URI:
 ```bash
 export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
 dvc repro
+```
+
+To see all running pods:
+```bash
+kubectl get po -A
 ```
 
 ## Outputs

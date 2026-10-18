@@ -1,1 +1,1 @@
-"""Training package for the lab_1 repository."""
+"""Training package for the MLOpS-Lab_1-BERT_Tiny repository."""

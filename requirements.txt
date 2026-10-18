@@ -1,5 +1,4 @@
 datasets>=2.21,<3
-# mlflow>=2.14,<3
 mlflow==3.15.2
 numpy>=1.26,<3
 scikit-learn>=1.5,<2

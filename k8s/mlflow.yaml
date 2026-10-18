@@ -1,3 +1,30 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-pvc
+  namespace: mlops-l1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  namespace: mlops-l1
+spec:
+  selector:
+    app: mlflow
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000
+    nodePort: 30500
+  type: NodePort
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -33,7 +60,6 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
-        #mkdir -p /mlflow/artifacts && \
         command:
         - sh
         - -c
