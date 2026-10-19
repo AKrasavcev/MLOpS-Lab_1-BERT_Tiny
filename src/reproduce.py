@@ -14,7 +14,7 @@ from pathlib import Path
 import mlflow
 import yaml
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 TRAIN_KEYS = {
     "max_length": int, 
     "epochs": int, 
