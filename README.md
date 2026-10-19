@@ -17,9 +17,9 @@ uv venv .venv && source .venv/bin/activate
 uv pip install -r requirements.txt
 ```
 
-## Run locally
+## Run locally on local MLflow server
 
-Run mlflow local server
+Run **MLflow** local server
 ```bash
 mlflow server \
 --backend-store-uri sqlite:///mlflow.db \
@@ -27,7 +27,7 @@ mlflow server \
 --host 127.0.0.1 --port 5000
 ```
 
-Run manualy
+Run training manualy
 ```bash
 python src/create_raw_dataset.py    # mandatory for first time
 
@@ -37,7 +37,7 @@ python src/train.py
 python src/evaluate_model.py
 ```
 
-or using DVC
+or using **DVC**
 ```bash
 dvc repro
 ```
@@ -99,16 +99,26 @@ Image accessible at [https://github.com/users/AKrasavcev/packages/container/pack
 
 Install **Minikube**: [https://minikube.sigs.k8s.io/docs/start/](https://minikube.sigs.k8s.io/docs/start/?arch=%2Fwindows%2Fx86-64%2Fstable%2F.exe+download)
 
-Start minikube cluster
+Start Minikube cluster
 ```bash
-minikube start --cpus=6 --memory=8192
+minikube start --cpus=4 --memory=8192
 bash scripts/k8_deploy.sh
 ```
+
+or 
+
+```bash
+kubectl apply -f k8s/namespace.yaml -f k8s/configmap.yaml \
+    -f k8s/mlflow.yaml -f k8s/postgres.yaml \
+    -f k8s/resourcequota.yaml
+```
+
 
 Access MLflow server through port-forwarding from your PC:
 
 ```bash
 kubectl -n mlops-l1 port-forward svc/mlflow 5000:5000
+
 export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
 python src/train.py
 python src/evaluate_model.py
@@ -124,6 +134,16 @@ dvc repro
 To see all running pods:
 ```bash
 kubectl get po -A
+```
+
+To deploy trained model in pod:
+```bash
+kubectl -n mlops-l1 port-forward svc/mlops-l1-bert-tiny 8000:8000
+
+curl http://localhost:8000/health
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"text":"This movie is amazing and really enjoyable."}'
 ```
 
 ## Outputs

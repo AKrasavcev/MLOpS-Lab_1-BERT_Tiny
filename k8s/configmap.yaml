@@ -4,5 +4,5 @@ metadata:
   name: mlops-l1-config
   namespace: mlops-l1
 data:
-  MODEL_PATH: "/app/models/model.pkl"
+  MODEL_PATH: "/app/model/model"
   MLFLOW_TRACKING_URI: "http://mlflow.mlops-l1.svc.cluster.local:5000"

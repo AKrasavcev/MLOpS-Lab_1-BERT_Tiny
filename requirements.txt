@@ -7,4 +7,3 @@ torchvision>=0.29,<1
 transformers>=4.44,<5
 accelerate>=0.26.0
 dvc==3.67.1
-prometheus-client>=0.26.0
