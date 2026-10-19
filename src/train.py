@@ -55,7 +55,7 @@ class TrainingConfig:
     experiment_name: str = DEFAULT_EXPERIMENT_NAME
     registered_model_name: str = DEFAULT_MODEL_REGISTRY_NAME
     run_name: str | None = None
-    tracking_uri: str | None = os.getenv("MLFLOW_TRACKING_URI")
+    tracking_uri: str | None = "http://localhost:5000"
 
 
 
@@ -71,6 +71,7 @@ def parse_args(params: dict[str, object]) -> TrainingConfig:
     parser.add_argument("--optimizer", type=str, default=params["optimizer"])
     parser.add_argument("--weight-decay", type=float, default=params["weight_decay"])
     parser.add_argument("--seed", type=int, default=params["seed"])
+    parser.add_argument("--tracking-uri", type=str, default="http://localhost:5000")
     args = parser.parse_args()
 
     return TrainingConfig(
@@ -83,6 +84,7 @@ def parse_args(params: dict[str, object]) -> TrainingConfig:
         optimizer=args.optimizer,
         weight_decay=args.weight_decay,
         seed=args.seed,
+        tracking_uri=args.tracking_uri
     )
 
 
