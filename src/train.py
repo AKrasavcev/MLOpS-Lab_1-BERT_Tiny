@@ -35,7 +35,7 @@ DEFAULT_TRAIN_DATA_PATH = ROOT_DIR / "data" / "train.csv"
 DEFAULT_TEST_DATA_PATH = ROOT_DIR / "data" / "test.csv"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True) 
 class TrainingConfig:
     model_name: str = DEFAULT_MODEL_NAME
     dataset_name: str = DEFAULT_DATASET_NAME

@@ -5,7 +5,7 @@
   "eval_f1": 0.7448559670781894,
   "eval_precision": 0.7004643962848297,
   "eval_recall": 0.7952548330404218,
-  "eval_runtime": 0.8798,
-  "eval_samples_per_second": 2273.372,
-  "eval_steps_per_second": 284.172
+  "eval_runtime": 0.7233,
+  "eval_samples_per_second": 2765.067,
+  "eval_steps_per_second": 345.633
 }
