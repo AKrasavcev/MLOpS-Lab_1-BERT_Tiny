@@ -7,7 +7,7 @@ from pathlib import Path
 import mlflow
 import numpy as np
 from datasets import load_dataset
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, TrainingArguments, Trainer
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -25,6 +25,8 @@ def build_compute_metrics():
         return {
             "accuracy": float(accuracy_score(labels, predictions)),
             "f1": float(f1_score(labels, predictions, zero_division=0)),
+            "precision": float(precision_score(labels, predictions, zero_division=0)),
+            "recall": float(recall_score(labels, predictions, zero_division=0)),
         }
 
     return compute_metrics

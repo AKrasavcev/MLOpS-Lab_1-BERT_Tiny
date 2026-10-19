@@ -9,7 +9,7 @@ train:
 
   # Learning Rate & Scheduler
   learning_rate: 2e-5
-  lr_scheduler_type: constant   # linear, cosine, constant, cosine_with_warnmup
+  lr_scheduler_type: linear   # linear, cosine, constant, cosine_with_warnmup
 
   # Optimizer
   optimizer: adamw_torch      # adamw_torch, adamw_torch_fused, adamw_hf, sgd, adafactor, 

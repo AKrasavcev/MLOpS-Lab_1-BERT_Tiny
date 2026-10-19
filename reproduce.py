@@ -72,7 +72,7 @@ def main() -> None:
         mlflow.MlflowClient().set_tag(new_id, "reproduces", args.run_id)
 
         ok = True                                           # 5. compare
-        for key in ("eval/eval_accuracy", "eval/f1"):
+        for key in ("eval/eval_accuracy", "eval/f1", "eval/precision", "eval/recall"):
             delta = abs(new.data.metrics[key] - metrics[key])
             ok &= delta <= args.tolerance
             print(f"{key}: original={metrics[key]:.4f} reproduced={new.data.metrics[key]:.4f} delta={delta:.4f}")
