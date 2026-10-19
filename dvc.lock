@@ -13,6 +13,9 @@ stages:
       size: 2299
     params:
       params.yaml:
+        download:
+          dataset_name: glue
+          dataset_config: sst2
         prepare:
           dataset_size: 10000
           test_size: 0.2
@@ -49,10 +52,13 @@ stages:
       size: 472461
     - path: src/train.py
       hash: md5
-      md5: 6a7e7699e7771087af2b4c4844573464
-      size: 10080
+      md5: 6e92d8c7e2e89ed656a89d9427f2579e
+      size: 10081
     params:
       params.yaml:
+        download:
+          dataset_name: glue
+          dataset_config: sst2
         prepare:
           dataset_size: 10000
           test_size: 0.2
@@ -70,12 +76,12 @@ stages:
     outs:
     - path: model/model
       hash: md5
-      md5: fda2ef963285a9985ff6ca8e4ba07e32.dir
-      size: 18500311
+      md5: 87d16246abcdb11c5d0464b5fa9c695a.dir
+      size: 18500375
       nfiles: 7
     - path: model/run_id.txt
       hash: md5
-      md5: aa753d88776fb28d483e27f1cd0e0ccc
+      md5: 43aba8b20b4095001e61b80b861043c7
       size: 32
   evaluate:
     cmd: python src/evaluate_model.py
@@ -86,19 +92,19 @@ stages:
       size: 114673
     - path: model/model
       hash: md5
-      md5: fda2ef963285a9985ff6ca8e4ba07e32.dir
-      size: 18500311
+      md5: 87d16246abcdb11c5d0464b5fa9c695a.dir
+      size: 18500375
       nfiles: 7
     - path: model/run_id.txt
       hash: md5
-      md5: aa753d88776fb28d483e27f1cd0e0ccc
+      md5: 43aba8b20b4095001e61b80b861043c7
       size: 32
     - path: src/evaluate_model.py
       hash: md5
-      md5: e9b91c8da338bb19b543f4761de91048
-      size: 3491
+      md5: fab265aade97cf3970d817a2958b5402
+      size: 3631
     outs:
     - path: model/metrics.json
       hash: md5
-      md5: 2287b65baef958aa42f62d131273d6b5
-      size: 314
+      md5: 6a6544d27d1c138a21f33916db966506
+      size: 313

@@ -1,13 +1,4 @@
 stages:
-  download:
-    cmd: python src/create_raw_dataset.py
-    deps:
-    - src/create_raw_dataset.py
-    params:
-    - params.yaml:
-    outs:
-    - data/raw_dataset.csv
-
   prepare:
     cmd: python src/prepare_dataset.py
     deps:

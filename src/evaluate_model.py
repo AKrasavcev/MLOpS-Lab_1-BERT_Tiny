@@ -16,6 +16,7 @@ DEFAULT_MODEL_DIR = MODEL_ROOT / "model"
 DEFAULT_TEST_DATA_PATH = ROOT_DIR / "data" / "test.csv"
 DEFAULT_RUN_ID_PATH = MODEL_ROOT / "run_id.txt"
 DEFAULT_METRICS_PATH = MODEL_ROOT / "metrics.json"
+DEFAULT_TRACKING_URI = "http://localhost:5000"  # default mlflow server URI
 
 
 def build_compute_metrics():
@@ -72,6 +73,8 @@ def evaluate_model() -> dict[str, float]:
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
     if tracking_uri:
         mlflow.set_tracking_uri(tracking_uri)
+    else:
+        mlflow.set_tracking_uri(DEFAULT_TRACKING_URI)
 
     run_id = Path(DEFAULT_RUN_ID_PATH).read_text(encoding="utf-8").strip() if Path(DEFAULT_RUN_ID_PATH).exists() else None
     if run_id:                                   # lineage: evaluation lands on the training run
