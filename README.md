@@ -52,7 +52,7 @@ dvc metrics diff HEAD~1
 dvc params diff HEAD~1
 ```
 
-To reproduce experiment:
+To reproduce experiment **(don't forget to save all uncommitted changes)**:
 ```bash
 python reproduce.py <experiment-id>
 ```
