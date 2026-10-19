@@ -89,7 +89,7 @@ def parse_args(params: dict[str, object]) -> TrainingConfig:
 def git_commit() -> str:
     try:
         return subprocess.check_output(
-            ["git", "rev-parse", "--short=8", "HEAD"], cwd=ROOT, text=True
+            ["git", "rev-parse", "--short=8", "HEAD"], cwd=ROOT_DIR, text=True
         ).strip()
     except Exception:
         return "unknown"

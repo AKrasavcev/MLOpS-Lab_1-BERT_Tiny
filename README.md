@@ -27,6 +27,8 @@ mlflow server \
 --host 127.0.0.1 --port 5000
 ```
 
+Server accessible at [http://127.0.0.1:5000](http://127.0.0.1:5000)
+
 Run training manualy
 ```bash
 python src/create_raw_dataset.py    # mandatory for first time

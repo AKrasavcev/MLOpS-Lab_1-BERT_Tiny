@@ -3,7 +3,7 @@
   "eval_model_preparation_time": 0.0004,
   "eval_accuracy": 0.69,
   "eval_f1": 0.7448559670781894,
-  "eval_runtime": 0.8444,
-  "eval_samples_per_second": 2368.452,
-  "eval_steps_per_second": 296.056
+  "eval_runtime": 0.883,
+  "eval_samples_per_second": 2265.081,
+  "eval_steps_per_second": 283.135
 }
