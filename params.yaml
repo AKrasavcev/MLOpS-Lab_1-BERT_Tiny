@@ -16,6 +16,10 @@ train:
   weight_decay: 0.01
 
   seed: 42
+
+download:
+  dataset_name: glue
+  dataset_config: sst2
   
 prepare:
   dataset_size: 10000

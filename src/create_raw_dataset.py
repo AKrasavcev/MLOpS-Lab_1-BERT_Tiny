@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import yaml
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
@@ -39,14 +40,17 @@ def write_csv_rows(path: Path | str, rows: Iterable[dict[str, Any]]) -> Path:
     return output_path
 
 
-def create_raw_dataset() -> Path:
-    dataset = load_dataset(DEFAULT_DATASET_NAME, DEFAULT_DATASET_CONFIG)
+
+
+def create_raw_dataset(dataset_name: str = DEFAULT_DATASET_NAME, dataset_config: str = DEFAULT_DATASET_CONFIG) -> Path:
+    dataset = load_dataset(dataset_name, dataset_config)
     rows = build_raw_rows(dataset)
     return write_csv_rows(RAW_DATA_PATH, rows)
 
 
 def main() -> None:
-    output_path = create_raw_dataset()
+    params = yaml.safe_load(Path(ROOT_DIR / "params.yaml").read_text())["download"]
+    output_path = create_raw_dataset(params["dataset_name"], params["dataset_config"])
     print(f"Saved raw dataset with {sum(1 for _ in output_path.open('r', encoding='utf-8')) - 1} rows to {output_path}")
 
 
