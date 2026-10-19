@@ -59,6 +59,8 @@ python reproduce.py <experiment-id>
 
 ## Create Docker image
 
+If you want to build image yourself and run security scans:
+
 Install **Docker**: [https://docs.docker.com/engine/install/ubuntu/](https://docs.docker.com/engine/install/ubuntu/)
 
 Build image
@@ -80,22 +82,7 @@ trivy image -f spdx-json -o docs/sbom-cpu.json bert-tiny:latest
 
 ## Publish to GHCR
 
-Install **gh**: [https://cli.github.com](https://cli.github.com)
-
-```bash
-gh auth login --hostname github.com --git-protocol ssh --web \
-    --scopes write:packages,read:packages
-    
-OWNER=$(gh api user --jq '.login | ascii_downcase')
-gh auth token | docker login ghcr.io -u "$OWNER" --password-stdin
-export IMAGE_NAME=bert-tiny
-export COMMIT_SHA=$(git rev-parse --short=12 HEAD)
-export IMAGE=ghcr.io/$OWNER/$IMAGE_NAME:sha-$COMMIT_SHA
-docker build -f docker/Dockerfile.cpu -t $IMAGE .           # or docker tag bert-tiny:latest $IMAGE
-docker push $IMAGE
-```
-
-Image accessible at [https://github.com/users/AKrasavcev/packages/container/package/bert-tiny](https://github.com/users/AKrasavcev/packages/container/package/bert-tiny)
+Built image accessible at [https://github.com/users/AKrasavcev/packages/container/package/bert-tiny](https://github.com/users/AKrasavcev/packages/container/package/bert-tiny)
 
 ## Run against the Kubernetes MLflow service
 
@@ -139,13 +126,21 @@ kubectl get po -A
 ```
 
 To deploy trained model in pod:
+
 ```bash
+kubectl apply -f k8s/deployment-cpu.yaml
+
 kubectl -n mlops-l1 port-forward svc/mlops-l1-bert-tiny 8000:8000
 
 curl http://localhost:8000/health
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{"text":"This movie is amazing and really enjoyable."}'
+```
+
+To delete minikube cluster:
+```bash
+minikube delete
 ```
 
 ## Outputs
