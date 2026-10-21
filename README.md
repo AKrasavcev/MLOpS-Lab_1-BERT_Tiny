@@ -29,6 +29,13 @@ mlflow server \
 
 Server accessible at [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
+Configure **DVC**:
+
+```bash
+mkdir -p ~/dvcstore
+dvc remote add -d localremote ~/dvcstore
+```
+
 Run training manualy
 ```bash
 python src/create_raw_dataset.py    # mandatory for first time
