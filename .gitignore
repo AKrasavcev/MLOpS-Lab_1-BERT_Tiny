@@ -11,3 +11,6 @@ model/*
 !model/metrics.json
 !model/run_id.txt
 *.csv
+
+# real k8s secrets are never committed
+k8s/secret.yaml

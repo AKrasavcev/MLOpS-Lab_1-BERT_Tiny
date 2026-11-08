@@ -42,16 +42,17 @@ spec:
               memory: "256Mi"
             limits:
               cpu: "1"
-              memory: "512Mi"
+              memory: "1Gi"
           readinessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 5
+            initialDelaySeconds: 20
             periodSeconds: 10
+            failureThreshold: 12
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 15
+            initialDelaySeconds: 120
             periodSeconds: 20

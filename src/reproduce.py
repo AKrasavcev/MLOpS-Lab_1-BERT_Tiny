@@ -17,7 +17,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 TRAIN_KEYS = {
     "max_length": int, 
-    "epochs": int, 
+    "epochs": float, 
     "learning_rate": float, 
     "train_batch_size": int, 
     "eval_batch_size": int, 

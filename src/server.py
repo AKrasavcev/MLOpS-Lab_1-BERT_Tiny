@@ -1,19 +1,32 @@
 import os
 from pathlib import Path
 
+import mlflow
 import torch
 from fastapi import FastAPI
 from pydantic import BaseModel
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-MODEL_DIR = Path(os.getenv("MODEL_PATH", "/app/model/model"))
+# The model comes from the MLflow registry, not from the image.
+MODEL_URI = os.getenv("MODEL_URI", "models:/bert-tiny-sst2@champion")
+MODEL_CACHE_DIR = Path(os.getenv("MODEL_CACHE_DIR", "/tmp/model"))
 
 app = FastAPI(title="BERT Tiny Sentiment API")
 
+
+def load_from_registry(model_uri: str, dst: Path):
+    """Download a model logged with mlflow.transformers and load it with transformers."""
+    dst.mkdir(parents=True, exist_ok=True)
+    local_dir = Path(mlflow.artifacts.download_artifacts(artifact_uri=model_uri, dst_path=str(dst)))
+    tok = AutoTokenizer.from_pretrained(str(local_dir / "components" / "tokenizer"))
+    mdl = AutoModelForSequenceClassification.from_pretrained(str(local_dir / "model"))
+    mdl.eval()
+    return tok, mdl
+
+
+STARTUP_ERROR = ""
 try:
-    tokenizer = AutoTokenizer.from_pretrained(str(MODEL_DIR))
-    model = AutoModelForSequenceClassification.from_pretrained(str(MODEL_DIR))
-    model.eval()
+    tokenizer, model = load_from_registry(MODEL_URI, MODEL_CACHE_DIR)
     MODEL_READY = True
 except Exception as exc:  # pragma: no cover - only for startup failures in container
     tokenizer = None
@@ -30,7 +43,7 @@ class PredictRequest(BaseModel):
 def health() -> dict:
     return {
         "status": "ok" if MODEL_READY else "degraded",
-        "model_path": str(MODEL_DIR),
+        "model_uri": MODEL_URI,
         "message": "Model loaded" if MODEL_READY else STARTUP_ERROR,
     }
 
@@ -72,5 +85,5 @@ def root() -> dict:
     return {
         "service": "BERT Tiny Sentiment API",
         "endpoints": ["/health", "/predict"],
-        "model_path": str(MODEL_DIR),
+        "model_uri": MODEL_URI,
     }
