@@ -12,7 +12,7 @@ train:
   lr_scheduler_type: linear   # linear, cosine, constant, cosine_with_warnmup
 
   # Optimizer
-  optimizer: adamw_torch      # adamw_torch, adamw_torch_fused, adamw_hf, sgd, adafactor, 
+  optimizer: adamw_torch      # adamw_torch, adamw_torch_fused, sgd, adafactor, 
   weight_decay: 0.01
 
   seed: 42
@@ -31,11 +31,12 @@ prepare:
   seed: 42
 
 hpo:
-  n_trials: 6
+  n_trials: 10
   seed: 42
   metric: eval_f1             # maximized
   search_space:               # list -> categorical, {low, high, log} -> float
     learning_rate: {low: 1.0e-5, high: 5.0e-4, log: true}
     train_batch_size: [8, 16, 32]
     weight_decay: {low: 0.0, high: 0.1}
+    optimizer: [adamw_torch, adamw_torch_fused, sgd, adafactor]
     lr_scheduler_type: [linear, cosine, constant]
