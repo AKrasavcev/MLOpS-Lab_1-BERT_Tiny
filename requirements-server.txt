@@ -1,6 +1,7 @@
-numpy==2.2.2
-torch==2.2.2+cpu
-transformers==4.46.3
+# Keep python (3.12) and torch/transformers/numpy equal to the training env (see model_pip_requirements in src/train.py).
+numpy==2.5.4
+torch==2.14.1+cpu
+transformers==4.57.6
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 mlflow-skinny==3.15.2

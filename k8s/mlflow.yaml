@@ -63,6 +63,13 @@ spec:
         envFrom:
         - secretRef:
             name: mlflow-db
+        env:
+        # MLflow 3 rejects unknown Host headers (403 "Invalid Host header"). The default only
+        # covers localhost/private IPs, so in-cluster clients using the Service DNS name were
+        # blocked. Setting this replaces the defaults, so localhost (port-forward) and the
+        # minikube node IP (NodePort 30500) are listed again.
+        - name: MLFLOW_SERVER_ALLOWED_HOSTS
+          value: "mlflow,mlflow:*,mlflow.mlops-l1*,localhost,localhost:*,127.0.0.1,127.0.0.1:*,10.*,192.168.*"
         command:
         - sh
         - -c
