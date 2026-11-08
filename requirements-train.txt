@@ -1,0 +1,14 @@
+# Training Job image (docker/Dockerfile.train). Pinned to the local venv, and torch/transformers/numpy
+# equal to requirements-server.txt, so a model trained in the Job loads in the server image.
+# Installed with --index-url https://download.pytorch.org/whl/cpu (CPU-only torch).
+numpy==2.5.4
+torch==2.14.1+cpu
+transformers==4.57.6
+accelerate==1.15.0
+datasets==2.21.0
+pandas==2.3.3
+scikit-learn==1.9.1
+mlflow==3.15.2
+optuna==4.9.0
+psutil==7.2.2
+pyyaml==6.0.3

@@ -1,0 +1,37 @@
+# Training image for the k8s Job (k8s/train-job.yaml).
+#   docker build -f docker/Dockerfile.train --build-arg GIT_COMMIT=$(git rev-parse --short=8 HEAD) -t bert-tiny-train:latest .
+# Data is pulled from Hugging Face inside the Job, so the image does not depend on DVC.
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HF_HOME=/app/.cache/huggingface \
+    TRAIN_MODE=train
+
+WORKDIR /app
+
+COPY requirements-train.txt ./
+RUN pip install --upgrade pip && \
+    pip install --index-url https://download.pytorch.org/whl/cpu \
+                --extra-index-url https://pypi.org/simple \
+                -r requirements-train.txt
+
+# Bake the base checkpoint (about 17 MB) so every Job does not re-download it.
+RUN python -c "from transformers import AutoTokenizer, AutoModelForSequenceClassification as M; \
+AutoTokenizer.from_pretrained('prajjwal1/bert-tiny'); M.from_pretrained('prajjwal1/bert-tiny', num_labels=2)"
+
+COPY src/ ./src/
+COPY params.yaml ./params.yaml
+COPY docker/train-entrypoint.sh ./train-entrypoint.sh
+
+RUN useradd --uid 1000 --create-home trainer && \
+    mkdir -p data model && chown -R trainer:trainer /app
+USER 1000
+
+# train.py tags runs with this when there is no .git (the Job may override it via env).
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=${GIT_COMMIT} \
+    GIT_PYTHON_REFRESH=quiet
+
+ENTRYPOINT ["sh", "/app/train-entrypoint.sh"]
