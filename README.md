@@ -109,6 +109,8 @@ kubectl -n mlops-l1 create secret generic mlflow-db \
     --from-literal=POSTGRES_DB=mlflow \
     --from-literal=POSTGRES_USER=mlflow \
     --from-literal=POSTGRES_PASSWORD="$(openssl rand -hex 24)"
+kubectl -n mlops-l1 create secret generic mlflow-credentials \
+    --from-literal=MLFLOW_TRACKING_URI=http://mlflow.mlops-l1.svc.cluster.local:5000
 kubectl apply -f k8s/postgres.yaml -f k8s/mlflow.yaml
 ```
 
@@ -138,6 +140,22 @@ To see all running pods:
 ```bash
 kubectl get po -A
 ```
+
+### Train inside the cluster (Kubernetes Job)
+
+The Job ([k8s/train-job.yaml](k8s/train-job.yaml)) runs the training image ([docker/Dockerfile.train](docker/Dockerfile.train)) on CPU. It downloads SST-2 from Hugging Face, prepares it, trains, evaluates, and logs everything to the in-cluster MLflow.
+
+- **Hyperparameters**: ConfigMap `mlops-l1-train-params` ([k8s/train-configmap.yaml](k8s/train-configmap.yaml)), mounted as `/app/params.yaml`. It has the same format as `params.yaml`.
+- **Connection details**: Secret `mlflow-credentials` (key `MLFLOW_TRACKING_URI`). The Secret is created in the cluster by `scripts/k8_deploy.sh` and is never committed (template: [k8s/secret.example.yaml](k8s/secret.example.yaml)).
+- **Lineage**: the run is tagged with `git_commit` (baked in at build time) and `dvc_raw_md5` (md5 of the downloaded raw CSV, comparable with `data/raw_dataset.csv.dvc`).
+
+```bash
+bash scripts/train_job.sh          # build image, minikube image load, run Job, follow logs, wait for Completed
+bash scripts/train_job.sh hpo      # same, but runs Optuna HPO (nested runs)
+kubectl -n mlops-l1 get job bert-tiny-train   # COMPLETIONS 1/1, STATUS Complete
+```
+
+To change a hyperparameter, edit `k8s/train-configmap.yaml` (for example `learning_rate`) and re-run with `SKIP_BUILD=1 bash scripts/train_job.sh`. The script applies the ConfigMap and re-creates the Job, because a Job's pod template can't be changed in place. A new run then appears in the MLflow UI under the `bert-tiny-sst2` experiment.
 
 ### Register a model and make it `@champion`
 

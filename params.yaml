@@ -31,7 +31,7 @@ prepare:
   seed: 42
 
 hpo:
-  n_trials: 10
+  n_trials: 5
   seed: 42
   metric: eval_f1             # maximized
   search_space:               # list -> categorical, {low, high, log} -> float
