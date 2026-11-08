@@ -45,13 +45,9 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
-          env:
-            - name: POSTGRES_DB
-              value: mlflow
-            - name: POSTGRES_USER
-              value: mlflow
-            - name: POSTGRES_PASSWORD
-              value: mlflow
+          envFrom:
+            - secretRef:
+                name: mlflow-db
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
@@ -60,7 +56,7 @@ spec:
               command:
                 - sh
                 - -c
-                - pg_isready -U mlflow -d mlflow
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
@@ -68,7 +64,7 @@ spec:
               command:
                 - sh
                 - -c
-                - pg_isready -U mlflow -d mlflow
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
             initialDelaySeconds: 30
             periodSeconds: 20
       volumes:

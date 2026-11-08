@@ -104,10 +104,17 @@ bash scripts/k8_deploy.sh
 or 
 
 ```bash
-kubectl apply -f k8s/namespace.yaml -f k8s/configmap.yaml \
-    -f k8s/mlflow.yaml -f k8s/postgres.yaml \
-    -f k8s/resourcequota.yaml
+kubectl apply -f k8s/namespace.yaml -f k8s/configmap.yaml -f k8s/resourcequota.yaml
+kubectl -n mlops-l1 create secret generic mlflow-db \
+    --from-literal=POSTGRES_DB=mlflow \
+    --from-literal=POSTGRES_USER=mlflow \
+    --from-literal=POSTGRES_PASSWORD="$(openssl rand -hex 24)"
+kubectl apply -f k8s/postgres.yaml -f k8s/mlflow.yaml
 ```
+
+Database credentials live only in the `mlflow-db` Secret (see [k8s/secret.example.yaml](k8s/secret.example.yaml)); they are never committed. To change the password on an existing database, run `bash scripts/rotate_db_password.sh`.
+
+The API Deployment downloads the model from the MLflow registry at startup (`MODEL_URI` in [k8s/configmap.yaml](k8s/configmap.yaml)); the image contains no model.
 
 
 Access MLflow server through port-forwarding from your PC:

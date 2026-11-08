@@ -60,6 +60,9 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5000
+        envFrom:
+        - secretRef:
+            name: mlflow-db
         command:
         - sh
         - -c
@@ -69,7 +72,7 @@ spec:
             --host=0.0.0.0 \
             --port=5000 \
             --workers=1 \
-            --backend-store-uri=postgresql://mlflow:mlflow@postgres.mlops-l1.svc.cluster.local:5432/mlflow \
+            --backend-store-uri=postgresql://"$POSTGRES_USER":"$POSTGRES_PASSWORD"@postgres.mlops-l1.svc.cluster.local:5432/"$POSTGRES_DB" \
             --artifacts-destination=/mlartifacts
         resources:
           requests:

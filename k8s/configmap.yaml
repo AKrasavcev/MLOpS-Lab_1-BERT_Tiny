@@ -4,5 +4,6 @@ metadata:
   name: mlops-l1-config
   namespace: mlops-l1
 data:
-  MODEL_PATH: "/app/model/model"
+  # Switch to @champion once register.py sets the alias (R2).
+  MODEL_URI: "models:/bert-tiny-sst2/latest"
   MLFLOW_TRACKING_URI: "http://mlflow.mlops-l1.svc.cluster.local:5000"
