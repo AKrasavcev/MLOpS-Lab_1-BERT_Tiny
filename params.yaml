@@ -17,6 +17,10 @@ train:
 
   seed: 42
 
+  # MLflow step charts: train loss every logging_steps, eval curve every eval_steps
+  logging_steps: 20
+  eval_steps: 100
+
 download:
   dataset_name: glue
   dataset_config: sst2
@@ -25,3 +29,13 @@ prepare:
   dataset_size: 10000
   test_size: 0.2
   seed: 42
+
+hpo:
+  n_trials: 6
+  seed: 42
+  metric: eval_f1             # maximized
+  search_space:               # list -> categorical, {low, high, log} -> float
+    learning_rate: {low: 1.0e-5, high: 5.0e-4, log: true}
+    train_batch_size: [8, 16, 32]
+    weight_decay: {low: 0.0, high: 0.1}
+    lr_scheduler_type: [linear, cosine, constant]
