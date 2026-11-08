@@ -31,6 +31,9 @@ metadata:
   namespace: mlops-l1
 spec:
   replicas: 1
+  # Never run two Postgres pods on the same data directory (RWO volume).
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: postgres
@@ -48,6 +51,14 @@ spec:
           envFrom:
             - secretRef:
                 name: mlflow-db
+          # Required by the namespace ResourceQuota (without them the pod is rejected).
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
