@@ -1,0 +1,56 @@
+# CPU training Job: logs a run (params, step metrics, system metrics, datasets, model) to the
+# in-cluster MLflow. Hyperparameters come from the ConfigMap, connection details from the Secret.
+#   scripts/train_job.sh [train|hpo]      # recommended: re-creates the Job and waits for Completed
+# Manual:
+#   kubectl apply -f k8s/train-configmap.yaml
+#   kubectl -n mlops-l1 delete job bert-tiny-train --ignore-not-found
+#   kubectl apply -f k8s/train-job.yaml
+#   kubectl -n mlops-l1 wait --for=condition=complete job/bert-tiny-train --timeout=30m
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: bert-tiny-train
+  namespace: mlops-l1
+  labels:
+    app: bert-tiny-train
+spec:
+  backoffLimit: 1                  # one retry, then the Job is Failed
+  activeDeadlineSeconds: 3600      # hard stop after 1 h
+  ttlSecondsAfterFinished: 86400   # keep the finished Job and logs for a day, then clean up
+  template:
+    metadata:
+      labels:
+        app: bert-tiny-train
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: train
+          image: bert-tiny-train:latest   # scripts/train_job.sh builds it and runs `minikube image load`
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: mlflow-credentials  # MLFLOW_TRACKING_URI (+ optional username/password)
+          env:
+            - name: TRAIN_MODE
+              value: "train"             # or "hpo"
+            - name: GIT_COMMIT
+              value: "unknown"           # scripts/train_job.sh sets the current commit
+          volumeMounts:
+            - name: params
+              mountPath: /app/params.yaml
+              subPath: params.yaml
+              readOnly: true
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+      volumes:
+        - name: params
+          configMap:
+            name: mlops-l1-train-params
