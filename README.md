@@ -139,10 +139,28 @@ To see all running pods:
 kubectl get po -A
 ```
 
+### Register a model and make it `@champion`
+
+Training only logs the model. [src/register.py](src/register.py) registers a run as a new version of `bert-tiny-sst2`, moves the current `@champion` to `@previous` and puts `@champion` on the new version. It also copies the run's metrics and `git_commit` onto the version as tags.
+
+```bash
+export MLFLOW_TRACKING_URI=http://127.0.0.1:5000
+python src/register.py                    # run id from model/run_id.txt (after dvc repro)
+python src/register.py --from-hpo         # best HPO trial from model/hpo_best.json
+python src/register.py --run-id <run_id>  # any run
+python src/register.py --run-id <run_id> --no-promote   # register only
+```
+
+The API loads `MODEL_URI=models:/bert-tiny-sst2@champion`. At startup it resolves the alias to a version (`MlflowClient.get_model_version_by_alias`), downloads exactly that version, and reports it in `/health` (`model_version`, `run_id`). Restart the pods to pick up a new champion:
+
+```bash
+kubectl -n mlops-l1 rollout restart deployment/mlops-l1-bert-tiny
+```
+
 To deploy trained model in pod:
 
 ```bash
-kubectl apply -f k8s/deployment-cpu.yaml
+kubectl apply -f k8s/configmap.yaml -f k8s/deployment-cpu.yaml
 
 kubectl -n mlops-l1 port-forward svc/mlops-l1-bert-tiny 8000:8000
 

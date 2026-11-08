@@ -1,8 +1,13 @@
 #!/bin/bash
 
-gh auth login --hostname github.com --git-protocol ssh --web \
-    --scopes write:packages,read:packages
-    
+if gh auth status --hostname github.com >/dev/null 2>&1; then
+    echo "Already logged in to GitHub CLI"
+else
+    echo "Logging in to GitHub CLI"
+    gh auth login --hostname github.com --git-protocol ssh --web \
+        --scopes write:packages,read:packages
+fi
+
 OWNER=$(gh api user --jq '.login | ascii_downcase')
 gh auth token | docker login ghcr.io -u "$OWNER" --password-stdin
 export IMAGE_NAME=bert-tiny

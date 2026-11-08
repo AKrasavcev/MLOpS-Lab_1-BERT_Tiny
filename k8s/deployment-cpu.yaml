@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/akrasavcev/bert-tiny:sha-1c07b07ef6fa
+          image: ghcr.io/akrasavcev/bert-tiny:sha-8b1d3f8ff30f
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
@@ -43,16 +43,22 @@ spec:
             limits:
               cpu: "1"
               memory: "1Gi"
+          # The model is downloaded from the registry at startup, so give it time before liveness kicks in.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 20
             periodSeconds: 10
-            failureThreshold: 12
+            failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 120
             periodSeconds: 20
+            failureThreshold: 3
