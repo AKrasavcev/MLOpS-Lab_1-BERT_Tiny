@@ -188,6 +188,22 @@ curl -X POST http://localhost:8000/predict \
   -d '{"text":"This movie is amazing and really enjoyable."}'
 ```
 
+The Deployment reads `MODEL_URI` from the ConfigMap `mlops-l1-config` and `MLFLOW_TRACKING_URI` from the Secret `mlflow-credentials` (created by `scripts/k8_deploy.sh` or by applying secret.yaml).
+
+### Load test (inference NFRs)
+
+[scripts/load_test.sh](scripts/load_test.sh) restarts the Deployment to time the cold start, reads the image and model sizes, then port-forwards the Service and runs [scripts/load_test.py](scripts/load_test.py): 500 `POST /predict` requests at concurrency 10 by default. It writes [docs/load-test.md](docs/load-test.md) and `docs/load-test.json`.
+
+```bash
+bash scripts/load_test.sh            # 500 requests, concurrency 10
+bash scripts/load_test.sh 1000 20    # custom requests / concurrency
+
+# or only the load test, against an already port-forwarded service:
+python scripts/load_test.py --url http://localhost:8000 -n 500 -c 10
+```
+
+The output includes p50/p95/p99 latency, throughput, error rate, model version, image tag and size, model artifact size, cold start time and pod peak memory. The script exits 1 if more than 1% of requests fail.
+
 To delete minikube cluster:
 ```bash
 minikube delete
