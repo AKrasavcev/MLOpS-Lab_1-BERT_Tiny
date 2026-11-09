@@ -16,7 +16,7 @@ import statistics
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -81,7 +81,7 @@ def run(url: str, n: int, concurrency: int, warmup: int, timeout: float, seed: i
             errors[str(status)] = errors.get(str(status), 0) + 1
 
     return {
-        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
         "url": url,
         "requests": n,
         "concurrency": concurrency,

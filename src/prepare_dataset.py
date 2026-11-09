@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import csv
 import random
-import yaml
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
+
+import yaml
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT_DIR / "data"
@@ -14,7 +15,12 @@ TEST_DATA_PATH = DATA_DIR / "test.csv"
 
 
 
-def split_rows(rows: list[dict[str, object]], dataset_size: int, test_size: float = 0.2, seed: int = 42) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+Row = dict[str, object]
+
+
+def split_rows(
+    rows: list[Row], dataset_size: int, test_size: float = 0.2, seed: int = 42
+) -> tuple[list[Row], list[Row]]:
     if not rows:
         return [], []
 
@@ -51,7 +57,12 @@ def prepare_dataset(params: dict[str, float]) -> tuple[Path, Path]:
         reader = csv.DictReader(csv_file)
         rows = [{"text": row["text"], "label": int(row["label"])} for row in reader]
 
-    train_rows, test_rows = split_rows(rows, dataset_size=int(params["dataset_size"]), test_size=params["test_size"], seed=int(params["seed"]))
+    train_rows, test_rows = split_rows(
+        rows,
+        dataset_size=int(params["dataset_size"]),
+        test_size=params["test_size"],
+        seed=int(params["seed"]),
+    )
     train_output = write_csv_rows(TRAIN_DATA_PATH, train_rows)
     test_output = write_csv_rows(TEST_DATA_PATH, test_rows)
     return train_output, test_output

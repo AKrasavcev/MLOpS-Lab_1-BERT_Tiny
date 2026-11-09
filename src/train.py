@@ -273,7 +273,9 @@ def train_once(
         callbacks=[MlflowStepCallback()],
     )
 
-    run_name = config.run_name or f"bt-{config.lr_scheduler_type}-lr{config.learning_rate:g}-bs{config.train_batch_size}"
+    run_name = config.run_name or (
+        f"bt-{config.lr_scheduler_type}-lr{config.learning_rate:g}-bs{config.train_batch_size}"
+    )
     dataset_id = f"{config.dataset_name}-{config.dataset_config}"
 
     with mlflow.start_run(run_name=run_name, nested=nested, log_system_metrics=True) as run:
@@ -302,8 +304,9 @@ def train_once(
 
         train_result = trainer.train()
         final_eval = trainer.evaluate()  # also logged by the callback at the last step
-        eval_metrics = {k: float(v) for k, v in final_eval.items() if isinstance(v, (int, float, np.floating))}
-        train_metrics = {k: float(v) for k, v in train_result.metrics.items() if isinstance(v, (int, float, np.floating))}
+        numeric = (int, float, np.floating)
+        eval_metrics = {k: float(v) for k, v in final_eval.items() if isinstance(v, numeric)}
+        train_metrics = {k: float(v) for k, v in train_result.metrics.items() if isinstance(v, numeric)}
 
         # Logged only - registration (and @champion) happens later in the gate/register step.
         mlflow.transformers.log_model(

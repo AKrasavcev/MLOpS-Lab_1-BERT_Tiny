@@ -8,7 +8,7 @@ import mlflow
 import numpy as np
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, TrainingArguments, Trainer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 MODEL_ROOT = ROOT_DIR / "model"
@@ -45,7 +45,11 @@ def evaluate_model() -> dict[str, float]:
 
     tokenized_test = test_dataset.map(tokenize_batch, batched=True)
     tokenized_test = tokenized_test.remove_columns(
-        [column for column in tokenized_test.column_names if column not in {"input_ids", "token_type_ids", "attention_mask", "label"}]
+        [
+            column
+            for column in tokenized_test.column_names
+            if column not in {"input_ids", "token_type_ids", "attention_mask", "label"}
+        ]
     )
     tokenized_test = tokenized_test.rename_column("label", "labels")
     tokenized_test.set_format("torch")
@@ -74,7 +78,8 @@ def evaluate_model() -> dict[str, float]:
     if tracking_uri:
         mlflow.set_tracking_uri(tracking_uri)
 
-    run_id = Path(DEFAULT_RUN_ID_PATH).read_text(encoding="utf-8").strip() if Path(DEFAULT_RUN_ID_PATH).exists() else None
+    run_id_path = Path(DEFAULT_RUN_ID_PATH)
+    run_id = run_id_path.read_text(encoding="utf-8").strip() if run_id_path.exists() else None
     if run_id:                                   # lineage: evaluation lands on the training run
         try:
             client = mlflow.MlflowClient()
