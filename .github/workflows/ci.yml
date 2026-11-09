@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test:
+    name: Lint + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements-server.txt
+            requirements-dev.txt
+
+      # Tests run against the server image's pinned deps (CPU torch), plus ruff/pytest.
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu \
+                      --extra-index-url https://pypi.org/simple \
+                      -r requirements-server.txt -r requirements-dev.txt
+
+      - name: Ruff
+        run: ruff check --output-format=github .
+
+      - name: Pytest
+        run: pytest -q
+
+  build-push:
+    name: Build + push ${{ matrix.image }}
+    needs: lint-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: bert-tiny          # inference API (k8s/deployment-cpu.yaml)
+            dockerfile: docker/Dockerfile.cpu
+          - image: bert-tiny-train    # training Job (k8s/train-job.yaml)
+            dockerfile: docker/Dockerfile.train
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Image name and tag
+        id: meta
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          sha="${GITHUB_SHA::12}"
+          echo "image=ghcr.io/${owner}/${{ matrix.image }}" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "short=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Pull requests only build; pushes to a branch build and push to GHCR.
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: GIT_COMMIT=${{ steps.meta.outputs.short }}
+          tags: |
+            ${{ steps.meta.outputs.image }}:sha-${{ steps.meta.outputs.sha }}
+            ${{ github.ref == 'refs/heads/master' && format('{0}:latest', steps.meta.outputs.image) || '' }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      - name: Summary
+        run: |
+          {
+            echo "### ${{ matrix.image }}"
+            echo ""
+            echo "\`${{ steps.meta.outputs.image }}:sha-${{ steps.meta.outputs.sha }}\`"
+            echo ""
+            echo "pushed: ${{ github.event_name != 'pull_request' }}"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import mlflow
@@ -53,7 +53,7 @@ def version_tags(run: mlflow.entities.Run) -> dict[str, str]:
         "run_id": run.info.run_id,
         "git_commit": run.data.tags.get("git_commit", os.getenv("GIT_COMMIT", "unknown")),
         "dvc_raw_md5": run.data.tags.get("dvc_raw_md5", "unknown"),
-        "registered_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "registered_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     for key in METRIC_TAGS:
         if key in run.data.metrics:

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import csv
-import yaml
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any
 
+import yaml
 from datasets import load_dataset
 
 ROOT_DIR = Path(__file__).resolve().parents[1]

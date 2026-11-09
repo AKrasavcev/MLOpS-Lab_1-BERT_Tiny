@@ -129,7 +129,7 @@ def predict(payload: PredictRequest) -> dict:
     label = model.config.id2label.get(predicted_index, str(predicted_index))
     probabilities = {
         str(key): round(float(value), 4)
-        for key, value in zip(model.config.id2label.values(), probs[0].tolist())
+        for key, value in zip(model.config.id2label.values(), probs[0].tolist(), strict=True)
     }
 
     return {
