@@ -1,0 +1,29 @@
+{
+  "timestamp": "2026-11-09T14:00:24+00:00",
+  "url": "http://localhost:8000",
+  "requests": 500,
+  "concurrency": 10,
+  "warmup": 10,
+  "model_name": "bert-tiny-sst2",
+  "model_version": "17",
+  "run_id": "6cb172e7009e40deb763baa5dd7196ae",
+  "successful": 500,
+  "error_rate": 0.0,
+  "errors": {},
+  "wall_time_s": 6.72,
+  "throughput_rps": 74.4,
+  "latency_ms": {
+    "mean": 134.2,
+    "min": 5.5,
+    "p50": 115.0,
+    "p95": 183.3,
+    "p99": 217.6,
+    "max": 228.4
+  },
+  "meta": {
+    "image": "`ghcr.io/akrasavcev/bert-tiny:sha-56a40cb4c8f9`",
+    "image_size": "386 MB (uncompressed)",
+    "model_artifact_size": "18 MB (MLflow artifact, downloaded at start)",
+    "cold_start": "6.4 s (rollout restart -> pod Ready, incl. model download)"
+  }
+}
