@@ -204,6 +204,29 @@ python scripts/load_test.py --url http://localhost:8000 -n 500 -c 10
 
 The output includes p50/p95/p99 latency, throughput, error rate, model version, image tag and size, model artifact size, cold start time and pod peak memory. The script exits 1 if more than 1% of requests fail.
 
+### CI (lint, tests, images)
+
+[.github/workflows/ci.yml](.github/workflows/ci.yml) runs on every push and pull request:
+
+1. **lint-test**: installs `requirements-server.txt` + `requirements-dev.txt`, then `ruff check .` (config in [pyproject.toml](pyproject.toml)) and `pytest`.
+2. **build-push** (only after lint-test passes): builds `docker/Dockerfile.cpu` and `docker/Dockerfile.train` and pushes `ghcr.io/akrasavcev/bert-tiny:sha-<12 chars>` and `ghcr.io/akrasavcev/bert-tiny-train:sha-<12 chars>` with `GITHUB_TOKEN` (`packages: write`). On `master` they are also tagged `latest`. Pull requests only build.
+
+Tests in [tests/](tests/) need no MLflow server or cluster:
+
+| file | covers |
+|---|---|
+| `test_prepare.py` | `split_rows` sizes, no overlap, seed determinism, CSV round-trip |
+| `test_gate.py` | [scripts/quality_gate.py](scripts/quality_gate.py) passes/fails around the threshold, exit codes, step summary |
+| `test_server.py` | FastAPI `TestClient` with a fake model: `/health`, `/predict`, 503 without a model, alias -> version resolution |
+| `test_register.py` | `@champion` -> `@previous` alias moves with a fake `MlflowClient` |
+
+Run the same checks locally:
+```bash
+uv pip install -r requirements-dev.txt
+ruff check .
+pytest -q
+```
+
 To delete minikube cluster:
 ```bash
 minikube delete
