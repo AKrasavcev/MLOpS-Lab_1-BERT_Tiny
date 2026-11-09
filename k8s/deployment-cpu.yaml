@@ -29,13 +29,15 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/akrasavcev/bert-tiny:sha-8b1d3f8ff30f
+          image: ghcr.io/akrasavcev/bert-tiny:sha-56a40cb4c8f9
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
           envFrom:
             - configMapRef:
-                name: mlops-l1-config
+                name: mlops-l1-config        # MODEL_URI
+            - secretRef:
+                name: mlflow-credentials     # MLFLOW_TRACKING_URI
           resources:
             requests:
               cpu: "250m"
