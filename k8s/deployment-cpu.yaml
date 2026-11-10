@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/akrasavcev/bert-tiny:sha-56a40cb4c8f9
+          image: ghcr.io/akrasavcev/bert-tiny:sha-ad2c2311a168
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
