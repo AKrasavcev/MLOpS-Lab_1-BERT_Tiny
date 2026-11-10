@@ -40,3 +40,9 @@ hpo:
     weight_decay: {low: 0.0, high: 0.1}
     optimizer: [adamw_torch, adamw_torch_fused, sgd, adafactor]
     lr_scheduler_type: [linear, cosine, constant]
+
+# CD quality gate (scripts/quality_gate.py): the model is registered and deployed only if
+# metric >= min_value on the test set. Override per run: CD workflow_dispatch input `min_value`.
+gate:
+  metric: eval_f1
+  min_value: 0.70

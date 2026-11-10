@@ -4,6 +4,8 @@
   python src/register.py --run-id <id>       # any run that logged a "model" artifact
   python src/register.py --from-hpo          # best trial from model/hpo_best.json
   python src/register.py --run-id <id> --no-promote   # register only, keep aliases as they are
+  python src/register.py --rollback                   # @champion -> the @previous version
+  python src/register.py --rollback --to-version 12   # @champion -> v12
 
 Alias logic: the version that is @champion now becomes @previous, and the new version becomes
 @champion. The server loads models:/bert-tiny-sst2@champion, so moving the alias plus a
@@ -46,6 +48,19 @@ def promote(client: MlflowClient, name: str, version: str) -> dict[str, str | No
         client.set_registered_model_alias(name, PREVIOUS, old_champion)
     client.set_registered_model_alias(name, CHAMPION, version)
     return {"champion": version, "previous": get_alias_version(client, name, PREVIOUS)}
+
+
+def rollback(client: MlflowClient, name: str, to_version: str | None = None) -> dict[str, str | None]:
+    """Move @champion back to `to_version` (default: @previous). The rolled-back version becomes @previous,
+    so a second rollback undoes the first."""
+    current = get_alias_version(client, name, CHAMPION)
+    target = str(to_version) if to_version is not None else get_alias_version(client, name, PREVIOUS)
+    if target is None:
+        raise SystemExit(f"{name} has no @{PREVIOUS} alias; pass --to-version <n>.")
+    if target == current:
+        raise SystemExit(f"{name} v{target} is already @{CHAMPION}.")
+    client.get_model_version(name, target)  # fails with a clear error if the version does not exist
+    return {"model_name": name, "rolled_back_from": current, **promote(client, name, target)}
 
 
 def version_tags(run: mlflow.entities.Run) -> dict[str, str]:
@@ -105,16 +120,27 @@ def main() -> None:
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--run-id", type=str, default=None)
     source.add_argument("--from-hpo", action="store_true", help=f"use best_run_id from {HPO_BEST_PATH.name}")
+    source.add_argument("--rollback", action="store_true", help="move @champion back (no new version)")
+    parser.add_argument("--to-version", type=str, default=None, help="with --rollback: target version")
     parser.add_argument("--model-name", type=str, default=MODEL_NAME)
     parser.add_argument("--no-promote", action="store_true", help="register only, do not move aliases")
     parser.add_argument("--tracking-uri", type=str, default=os.getenv("MLFLOW_TRACKING_URI"))
+    parser.add_argument("--output", type=Path, default=None, help="also write the result JSON here (CD)")
     args = parser.parse_args()
+    if args.to_version and not args.rollback:
+        parser.error("--to-version needs --rollback")
 
     if args.tracking_uri:
         mlflow.set_tracking_uri(args.tracking_uri)
 
-    result = register(resolve_run_id(args), name=args.model_name, promote_to_champion=not args.no_promote)
+    if args.rollback:
+        result = rollback(MlflowClient(), args.model_name, args.to_version)
+    else:
+        result = register(resolve_run_id(args), name=args.model_name, promote_to_champion=not args.no_promote)
     print(json.dumps(result, indent=2))
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(result), encoding="utf-8")
 
 
 if __name__ == "__main__":

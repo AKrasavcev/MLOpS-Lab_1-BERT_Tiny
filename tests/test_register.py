@@ -23,6 +23,11 @@ class FakeClient:
         self.set_calls.append((alias, str(version)))
         self.aliases[alias] = str(version)
 
+    def get_model_version(self, name, version):
+        if int(version) > 99:
+            raise MlflowException(f"version {version} not found")
+        return SimpleNamespace(version=str(version))
+
 
 def test_first_promotion_has_no_previous():
     client = FakeClient()
@@ -92,3 +97,34 @@ def test_register_no_promote_leaves_aliases(run, monkeypatch):
     client.set_registered_model_alias.assert_not_called()
     assert result["version"] == "6"
     assert result["champion"] == "2"
+
+
+def test_rollback_swaps_champion_and_previous():
+    client = FakeClient({"champion": "5", "previous": "4"})
+    result = reg.rollback(client, "m")
+    assert result == {"model_name": "m", "rolled_back_from": "5", "champion": "4", "previous": "5"}
+    # a second rollback undoes the first
+    assert reg.rollback(client, "m")["champion"] == "5"
+
+
+def test_rollback_to_given_version():
+    client = FakeClient({"champion": "5", "previous": "4"})
+    result = reg.rollback(client, "m", "2")
+    assert result == {"model_name": "m", "rolled_back_from": "5", "champion": "2", "previous": "5"}
+
+
+def test_rollback_without_previous_fails():
+    with pytest.raises(SystemExit, match="no @previous"):
+        reg.rollback(FakeClient({"champion": "1"}), "m")
+
+
+def test_rollback_to_current_champion_fails():
+    with pytest.raises(SystemExit, match="already @champion"):
+        reg.rollback(FakeClient({"champion": "3", "previous": "2"}), "m", "3")
+
+
+def test_rollback_to_missing_version_leaves_aliases():
+    client = FakeClient({"champion": "3", "previous": "2"})
+    with pytest.raises(MlflowException):
+        reg.rollback(client, "m", "500")
+    assert client.aliases == {"champion": "3", "previous": "2"}

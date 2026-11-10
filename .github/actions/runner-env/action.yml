@@ -1,0 +1,33 @@
+name: Self-hosted runner env
+description: kubectl on PATH, cluster reachable, Python venv with the server + dev deps (cached on the runner).
+runs:
+  using: composite
+  steps:
+    - name: kubectl + cluster
+      shell: bash
+      run: |
+        if ! command -v kubectl >/dev/null; then
+          minikube kubectl -- version --client >/dev/null
+          mkdir -p "$RUNNER_TEMP/bin"
+          ln -sf "$(ls -d "$HOME"/.minikube/cache/linux/amd64/*/kubectl | sort -V | tail -1)" "$RUNNER_TEMP/bin/kubectl"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          export PATH="$RUNNER_TEMP/bin:$PATH"
+        fi
+        minikube status >/dev/null || { echo "::error::Minikube is not running (minikube start)"; exit 1; }
+        kubectl -n mlops-l1 get deploy
+
+    # One venv per requirements hash, kept between runs, so torch is downloaded once.
+    - name: Python venv
+      shell: bash
+      run: |
+        key="$(cat requirements-server.txt requirements-dev.txt | sha256sum | cut -c1-12)"
+        venv="$HOME/.cache/bert-tiny-cd/venv-$key"
+        if [ ! -x "$venv/bin/python" ]; then
+          python3.12 -m venv "$venv"
+          "$venv/bin/pip" install -q --upgrade pip
+          "$venv/bin/pip" install -q --index-url https://download.pytorch.org/whl/cpu \
+              --extra-index-url https://pypi.org/simple \
+              -r requirements-server.txt -r requirements-dev.txt
+        fi
+        echo "PY=$venv/bin/python" >> "$GITHUB_ENV"
+        echo "$venv/bin" >> "$GITHUB_PATH"
