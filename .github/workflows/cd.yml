@@ -1,0 +1,192 @@
+name: CD
+
+# Runs after CI is green on master (CI already linted, tested and pushed the images to GHCR),
+# or by hand. Train in the cluster -> quality gate -> register @champion -> deploy -> smoke test.
+# Runs on the self-hosted runner on the Minikube machine (scripts/setup_runner.sh).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      min_value:
+        description: "Gate threshold override (empty = gate.min_value from params.yaml; 0.95 = red-run demo)"
+        required: false
+        default: ""
+
+# One CD at a time: they share one cluster, one Job name and the @champion alias.
+concurrency:
+  group: cd-minikube
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NS: mlops-l1
+  DEPLOY: mlops-l1-bert-tiny
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  train-gate:
+    name: Train (k8s Job) + quality gate
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: [self-hosted, minikube]
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      run_id: ${{ steps.train.outputs.run_id }}
+      tag: ${{ steps.meta.outputs.tag }}
+      owner: ${{ steps.meta.outputs.owner }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SHA }}
+
+      - uses: ./.github/actions/runner-env
+
+      - name: Pytest
+        run: pytest -q
+
+      - name: Image tag
+        id: meta
+        run: |
+          echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Training image -> Minikube
+        env:
+          IMAGE: ghcr.io/${{ steps.meta.outputs.owner }}/bert-tiny-train:${{ steps.meta.outputs.tag }}
+        run: bash scripts/minikube_image.sh "$IMAGE" docker/Dockerfile.train
+
+      # Hyperparameters: k8s/train-configmap.yaml of this commit. Results land in model/job/.
+      - name: Train in the cluster
+        id: train
+        env:
+          IMAGE: ghcr.io/${{ steps.meta.outputs.owner }}/bert-tiny-train:${{ steps.meta.outputs.tag }}
+          SKIP_BUILD: "1"
+          OUT_DIR: model/job
+        run: |
+          bash scripts/train_job.sh train
+          test -s model/job/run_id.txt || { echo "::error::no run id in the Job logs"; exit 1; }
+          echo "run_id=$(cat model/job/run_id.txt)" >> "$GITHUB_OUTPUT"
+          echo "MLflow run: \`$(cat model/job/run_id.txt)\`" >> "$GITHUB_STEP_SUMMARY"
+
+      # Exit 1 below the threshold: the deploy job then never starts (needs: train-gate).
+      - name: Quality gate
+        env:
+          MIN_VALUE: ${{ inputs.min_value }}
+        run: python scripts/quality_gate.py --metrics model/job/metrics.json ${MIN_VALUE:+--min-value "$MIN_VALUE"}
+
+  deploy:
+    name: Register @champion + deploy
+    needs: train-gate
+    runs-on: [self-hosted, minikube]
+    timeout-minutes: 30
+    permissions:
+      contents: write   # commit the new image tag back to k8s/deployment-cpu.yaml
+      packages: read
+    env:
+      RUN_ID: ${{ needs.train-gate.outputs.run_id }}
+      IMAGE: ghcr.io/${{ needs.train-gate.outputs.owner }}/bert-tiny:${{ needs.train-gate.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SHA }}
+
+      - uses: ./.github/actions/runner-env
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Server image -> Minikube
+        run: bash scripts/minikube_image.sh "$IMAGE" docker/Dockerfile.cpu
+
+      - name: Register + move @champion
+        id: register
+        run: |
+          source scripts/k8s_lib.sh
+          ensure_mlflow
+          python src/register.py --run-id "$RUN_ID" --output model/job/register.json
+          python - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          r = json.load(open("model/job/register.json"))
+          print(f"version={r['version']}")
+          print(f"previous={r['previous'] or ''}")
+          PY
+
+      - name: Deploy
+        id: deploy
+        run: |
+          rev="$(kubectl -n "$NS" get deploy "$DEPLOY" -o jsonpath='{.metadata.annotations.deployment\.kubernetes\.io/revision}' || true)"
+          echo "old_revision=$rev" >> "$GITHUB_OUTPUT"
+          sed -i "s#^\([[:space:]]*image:[[:space:]]*\).*/bert-tiny:.*#\1$IMAGE#" k8s/deployment-cpu.yaml
+          grep -n "image:" k8s/deployment-cpu.yaml
+          kubectl apply -f k8s/configmap.yaml -f k8s/deployment-cpu.yaml
+          # Restart even if the image is the same: the pods must reload the moved @champion.
+          kubectl -n "$NS" rollout restart "deployment/$DEPLOY"
+          kubectl -n "$NS" rollout status "deployment/$DEPLOY" --timeout=5m
+
+      - name: Smoke test (/health reports the new version)
+        run: bash scripts/smoke_test.sh "${{ steps.register.outputs.version }}"
+
+      # Automatic rollback: alias back to the old champion, pods back to the old image.
+      - name: Roll back (deploy or smoke test failed)
+        if: failure() && steps.register.outcome == 'success' && steps.register.outputs.previous != ''
+        env:
+          OLD_REVISION: ${{ steps.deploy.outputs.old_revision }}
+        run: |
+          source scripts/k8s_lib.sh
+          ensure_mlflow
+          python src/register.py --rollback --to-version "${{ steps.register.outputs.previous }}"
+          if [ -n "$OLD_REVISION" ]; then
+            kubectl -n "$NS" rollout undo "deployment/$DEPLOY" --to-revision="$OLD_REVISION"
+          else
+            kubectl -n "$NS" rollout restart "deployment/$DEPLOY"
+          fi
+          kubectl -n "$NS" rollout status "deployment/$DEPLOY" --timeout=5m
+          bash scripts/smoke_test.sh "${{ steps.register.outputs.previous }}"
+          echo "### Rolled back to v${{ steps.register.outputs.previous }}" >> "$GITHUB_STEP_SUMMARY"
+
+      # Keep git in sync with the cluster. [skip ci] so this commit doesn't start CI/CD again.
+      - name: Commit image tag to k8s/deployment-cpu.yaml
+        continue-on-error: true
+        run: |
+          if git diff --quiet -- k8s/deployment-cpu.yaml; then echo "manifest already up to date"; exit 0; fi
+          git fetch origin master
+          if [ "$(git rev-parse origin/master)" != "$SHA" ]; then
+            echo "::warning::master moved past ${SHA::8}; manifest not committed (the newer commit's CD will do it)"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B master origin/master
+          git commit -m "cd: deploy ${IMAGE##*/} (model v${{ steps.register.outputs.version }}) [skip ci]" -- k8s/deployment-cpu.yaml
+          git push origin master
+
+      - name: Summary
+        if: success()
+        run: |
+          {
+            echo "### Deployed"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| model | \`bert-tiny-sst2\` v${{ steps.register.outputs.version }} (@champion), previous v${{ steps.register.outputs.previous }} |"
+            echo "| run | \`$RUN_ID\` |"
+            echo "| image | \`$IMAGE\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

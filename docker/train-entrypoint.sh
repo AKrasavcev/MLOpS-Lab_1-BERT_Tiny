@@ -35,6 +35,9 @@ case "$MODE" in
     train)
         python src/train.py
         python src/evaluate_model.py
+        # One-line results for CD: scripts/train_job.sh picks these out of the pod logs.
+        echo "CD_RUN_ID=$(cat model/run_id.txt)"
+        python -c 'import json; print("CD_METRICS=" + json.dumps(json.load(open("model/metrics.json"))))'
         ;;
     hpo)
         python src/hpo.py

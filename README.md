@@ -227,6 +227,30 @@ ruff check .
 pytest -q
 ```
 
+### CD (quality gate, @champion, deploy, rollback)
+
+[.github/workflows/cd.yml](.github/workflows/cd.yml) runs on a **self-hosted runner** on the Minikube machine, because GitHub-hosted runners can't reach the local cluster. It starts after CI is green on `master` (CI has already run the tests and pushed both images), or by hand from the Actions tab.
+
+1. **train-gate**: `pytest`, then it loads the CI-built `bert-tiny-train:sha-<12>` image into Minikube and runs the training Job ([scripts/train_job.sh](scripts/train_job.sh); hyperparameters come from [k8s/train-configmap.yaml](k8s/train-configmap.yaml)). The Job prints its run id and test metrics, and [scripts/quality_gate.py](scripts/quality_gate.py) checks them against `gate:` in [params.yaml](params.yaml) (`eval_f1 >= 0.70`). If the metric is below the threshold the job turns red and nothing below runs.
+2. **deploy** (`needs: train-gate`): [src/register.py](src/register.py) registers the run, moves `@champion` to the new version and the old champion to `@previous`. Then it writes the image tag `bert-tiny:sha-<12>` into [k8s/deployment-cpu.yaml](k8s/deployment-cpu.yaml), runs `kubectl apply`, `rollout restart` and `rollout status`, and [scripts/smoke_test.sh](scripts/smoke_test.sh) checks that `/health` reports the new version and that `/predict` answers. If the deploy or the smoke test fails, the workflow rolls back by itself (alias back to the old champion, `rollout undo` to the old revision). On success the new image tag is committed to `master` with `[skip ci]`.
+
+One-time runner setup (GitHub → Settings → Actions → Runners → *New self-hosted runner*, copy the token):
+```bash
+bash scripts/setup_runner.sh <TOKEN>     # ~/actions-runner, label "minikube", systemd service
+```
+Before a run: `minikube start`. The runner service must be running (`sudo ~/actions-runner/svc.sh status`).
+
+Red run (the gate blocks the deploy): *Actions → CD → Run workflow* with `min_value = 0.95`. Or train a bad model: set `learning_rate: 1e-7` in `k8s/train-configmap.yaml` and push.
+
+Rollback (also available as the manual [rollback.yml](.github/workflows/rollback.yml) workflow):
+```bash
+bash scripts/rollback.sh                 # @champion -> @previous version, rollout restart, smoke test
+bash scripts/rollback.sh 12              # @champion -> v12
+bash scripts/rollback.sh --undo-image    # alias rollback + kubectl rollout undo (previous image)
+kubectl -n mlops-l1 rollout undo deployment/mlops-l1-bert-tiny   # image only, aliases untouched
+```
+The rolled-back version becomes `@previous`, so running `rollback.sh` a second time returns to the newer model. `/health` shows which version is serving.
+
 To delete minikube cluster:
 ```bash
 minikube delete

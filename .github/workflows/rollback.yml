@@ -1,0 +1,37 @@
+name: Rollback
+
+# Manual rollback on the self-hosted runner: @champion -> @previous (or a given version), then restart.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Model version to make @champion (empty = the @previous version)"
+        required: false
+        default: ""
+      undo_image:
+        description: "Also roll the Deployment back to its previous image (kubectl rollout undo)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: cd-minikube
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: [self-hosted, minikube]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/runner-env
+      - name: Roll back
+        env:
+          VERSION: ${{ inputs.version }}
+          UNDO_IMAGE: ${{ inputs.undo_image && '--undo-image' || '' }}
+        run: |
+          set -o pipefail
+          bash scripts/rollback.sh $UNDO_IMAGE $VERSION 2>&1 | tee rollback.log
+          { echo '### Rollback'; echo '```'; tail -20 rollback.log; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
