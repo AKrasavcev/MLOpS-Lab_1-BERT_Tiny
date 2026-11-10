@@ -48,15 +48,15 @@ Requirements: [docs/requirements.md](docs/requirements.md). Latest load-test res
  │   ▼                              │        │   ┌────────────┐     ┌─────────────────────────────┐   │
  │ CI (GitHub-hosted runner)        │        │   │ postgres   │◄────┤ mlflow (tracking + registry)│   │
  │   ruff + pytest                  │        │   │ (PVC)      │     │ :5000, NodePort 30500 (PVC) │   │
- │   build + push images ──► GHCR ──┼──pull──┼─┐ └────────────┘     └───────▲─────────▲───────────┘   │
- │   │ (master only)                │        │ │                           │ log     │ download      │
- │   ▼                              │        │ │  ┌──────────────────────┐ │         │ @champion     │
- │ CD (self-hosted runner) ─────────┼────────┼─┼─►│ Job bert-tiny-train  ├─┘         │               │
- │   train Job → quality gate       │        │ │  └──────────────────────┘ ┌─────────┴────────────┐  │
- │   → register @champion           │        │ └──────────────────────────►│ Deployment           │  │
- │   → deploy → smoke test          │        │                             │ mlops-l1-bert-tiny   │  │
- │   → auto-rollback on failure     │        │                             │ FastAPI :8000        │  │
- └──────────────────────────────────┘        │                             └──────────────────────┘  │
+ │   build + push images ──► GHCR ──┼──pull──┼─┐ └────────────┘     └──────▲─────────▲────────────┘   │
+ │   │ (master only)                │        │ │                           │ log     │ download       │
+ │   ▼                              │        │ │  ┌──────────────────────┐ │         │ @champion      │
+ │ CD (self-hosted runner) ─────────┼────────┼─┼─►│ Job bert-tiny-train  ├─┘         │                │
+ │   train Job → quality gate       │        │ │  └──────────────────────┘ ┌─────────┴────────────┐   │
+ │   → register @champion           │        │ └──────────────────────────►│ Deployment           │   │
+ │   → deploy → smoke test          │        │                             │ mlops-l1-bert-tiny   │   │
+ │   → auto-rollback on failure     │        │                             │ FastAPI :8000        │   │
+ └──────────────────────────────────┘        │                             └──────────────────────┘   │
                                              └────────────────────────────────────────────────────────┘
 ```
 
