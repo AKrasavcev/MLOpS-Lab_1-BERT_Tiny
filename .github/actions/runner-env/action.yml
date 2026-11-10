@@ -13,7 +13,15 @@ runs:
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           export PATH="$RUNNER_TEMP/bin:$PATH"
         fi
-        minikube status >/dev/null || { echo "::error::Minikube is not running (minikube start)"; exit 1; }
+        if grep -qi microsoft /proc/version && [ -z "${WSL_DISTRO_NAME:-}" ]; then
+          echo "::error::WSL_DISTRO_NAME is not set for the runner; minikube would expect the wrong API endpoint." \
+               "Add WSL_DISTRO_NAME=<distro> to ~/actions-runner/.env and restart the runner service."
+          exit 1
+        fi
+        if ! minikube status; then
+          echo "::error::Minikube is not running or kubeconfig is stale (minikube start / minikube update-context)"
+          exit 1
+        fi
         kubectl -n mlops-l1 get deploy
 
     # One venv per requirements hash, kept between runs, so torch is downloaded once.

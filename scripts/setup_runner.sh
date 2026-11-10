@@ -27,6 +27,12 @@ fi
 ./config.sh --unattended --replace --url "$REPO_URL" --token "$TOKEN" \
     --name "$(hostname)-minikube" --labels minikube --work _work
 
+# minikube detects WSL through WSL_DISTRO_NAME. systemd services don't get it, and without it minikube
+# expects the API server at the node IP instead of WSL's 127.0.0.1 port mapping ("kubeconfig: Misconfigured").
+if [ -n "${WSL_DISTRO_NAME:-}" ] && ! grep -q '^WSL_DISTRO_NAME=' .env 2>/dev/null; then
+    echo "WSL_DISTRO_NAME=$WSL_DISTRO_NAME" >> .env
+fi
+
 # Service runs as the current user, so it uses this user's ~/.kube/config, ~/.minikube and docker group.
 sudo ./svc.sh install "$USER"
 sudo ./svc.sh start
