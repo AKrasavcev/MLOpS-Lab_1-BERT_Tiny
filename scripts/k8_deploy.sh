@@ -1,7 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-kubectl apply -f k8s/namespace.yaml -f k8s/resourcequota.yaml -f k8s/configmap.yaml -f k8s/secret.yaml
+kubectl apply -f k8s/namespace.yaml -f k8s/resourcequota.yaml -f k8s/configmap.yaml
+
+# Optional local Secrets file (git-ignored). Without it, the Secrets are created below.
+if [ -f k8s/secret.yaml ]; then
+    kubectl apply -f k8s/secret.yaml
+fi
 
 # DB credentials live only in the cluster, never in git.
 if ! kubectl -n mlops-l1 get secret mlflow-db >/dev/null 2>&1; then

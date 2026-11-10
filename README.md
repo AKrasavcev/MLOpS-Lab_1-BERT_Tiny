@@ -131,9 +131,7 @@ source .venv/bin/activate
 
 # 2. Cluster + MLflow/Postgres
 minikube start --cpus=4 --memory=8192
-cp k8s/secret.example.yaml k8s/secret.yaml
-sed -i "s/<change-me>/$(openssl rand -hex 24)/" k8s/secret.yaml   # git-ignored, never commit it
-bash scripts/k8_deploy.sh
+bash scripts/k8_deploy.sh              # creates Secrets with a random DB password
 kubectl -n mlops-l1 rollout status deploy/mlflow
 
 # 3. Train in the cluster (builds the image, runs the Job, saves the run id to model/job/)
@@ -277,16 +275,13 @@ All resources live in the `mlops-l1` namespace.
 
 ```bash
 minikube start --cpus=4 --memory=8192
-
-# Secrets file (once per clone). k8s/secret.yaml is git-ignored.
-cp k8s/secret.example.yaml k8s/secret.yaml
-sed -i "s/<change-me>/$(openssl rand -hex 24)/" k8s/secret.yaml
-
 bash scripts/k8_deploy.sh
 kubectl -n mlops-l1 get pods            # postgres and mlflow Running
 ```
 
-`k8_deploy.sh` applies the namespace, quota, ConfigMap and Secrets. It creates the `mlflow-db` and `mlflow-credentials` Secrets if they are missing, with a random hex DB password, then applies Postgres and MLflow.
+`k8_deploy.sh` applies the namespace, quota and ConfigMap. It creates the `mlflow-db` and `mlflow-credentials` Secrets if they are missing, with a random hex DB password, then applies Postgres and MLflow.
+
+To set the Secret values yourself, copy `k8s/secret.example.yaml` to `k8s/secret.yaml` and fill it in. The script applies that file if it exists. It is git-ignored, so never commit it. Use a hex password, because it goes into a `postgresql://` URI.
 
 <details>
 <summary>Manual equivalent</summary>
@@ -556,7 +551,6 @@ Inside the cluster the Job uses the copy in `k8s/train-configmap.yaml`. Keep the
 
 ## Troubleshooting
 
-- **`k8_deploy.sh` fails on `k8s/secret.yaml`**: the file is git-ignored. Create it from `k8s/secret.example.yaml` (see [Start the cluster](#start-the-cluster-and-deploy-mlflow)). Use a hex password, because it goes into a `postgresql://` URI.
 - **MLflow `403 Invalid Host header`**: add the host you connect with to `MLFLOW_SERVER_ALLOWED_HOSTS` in `k8s/mlflow.yaml`.
 - **API `/health` is `degraded`**: there is no `@champion` yet (register a model) or MLflow is unreachable. Check with `kubectl -n mlops-l1 logs deploy/mlops-l1-bert-tiny`.
 - **`ErrImagePull` for a local image**: load it into Minikube (`minikube image load …`). Minikube doesn't see host Docker images.
